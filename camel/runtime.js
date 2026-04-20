@@ -1,14 +1,14 @@
 const root = document.getElementById("root");
 
 function renderElement(elem) {
-    const tag = elem[0];
+    const type = elem[0];
 
-    if (tag === "text") {
+    if (type === "text") {
         const text = elem[1];
         return document.createTextNode(text);
     }
 
-    const attrs = elem[1], children = elem[2];
+    const tag = elem[1], attrs = elem[2], children = elem[3];
 
     let e = document.createElement(tag);
     for (let child of children) e.appendChild(renderElement(child));

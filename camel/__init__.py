@@ -1,4 +1,4 @@
-"""
+r"""
 The Camel Static Site Generator. A powerful tool for building
 dynamic Single-Page Web Applications by utilising hash routing.
                   ,,__
@@ -11,6 +11,7 @@ dynamic Single-Page Web Applications by utilising hash routing.
     ||_  \\|_  \\_
 mrf '--' '--'' '--'
 """
+from __future__ import annotations
 import os
 from pathlib import Path
 
@@ -18,78 +19,73 @@ class Map(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
-def _makeElement(tag, children):
-    def atr(name, value):
-        element.attributes.append([name, value])
-        return element
+class Element:
+    def __init__(self, tag: str, *children: str | Element):
+        self.tag = tag
+        self.attributes = []
+        self.children = children
 
-    def style(atr, value):
-        style_atr = list(filter(
-            lambda a: a[0] == "style", element.attributes))
-        if style_atr:
-            for i, atr_ in enumerate(element.attributes):
-                if atr_[0] == "style":
-                    element.attributes[i][1] += " {}: {};".format(
-                        atr, value
-                    )
+    def attr(self, name, value):
+        self.attributes.append([name, value])
+        return self
+
+    def style(self, atr: str, value: str) -> Element:
+        style = f"{atr}: {value};"
+        existing = next(
+            (atr for atr in self.attributes if atr[0] == "style"), None)
+        if existing:
+            existing += f" {style}"
         else:
-            element.attributes.append(["style", "{}: {};".format(
-                atr, value
-            )])
-        return element
+            self.attributes.append(["style", style])
+        return self
 
-    def class_(classname):
-        class_atr = list(filter(
-            lambda c: c[0] == "class", element.attributes))
-        if class_atr:
-            for i, cls_ in enumerate(element.attributes):
-                if cls_[0] == "class":
-                    element.attributes[i][1] += " " + classname
+    def class_(self, name: str) -> Element:
+        existing = next(
+            (atr for atr in self.attributes if atr[0] == "style"), None)
+        if existing:
+            existing[1] += f" {name}"
         else:
-            element.attributes.append(["class", classname])
-        return element
+            self.attributes.append(["class", name])
+        return self
 
-    def id_(v): element.attributes.append(["id", v]); return element
-    def href(v): element.attributes.append(["href", v]); return element
+    def id_(self, name: str) -> Element:
+        self.attributes.append(["id", name])
+        return self
 
-    element = Map({
-        "tag": tag,
-        "attributes": [],
-        "children": children,
-        "atr": atr,
-        "style": style,
-        "class_": class_,
-        "id_": id_,
-        "href": href,
-    })
+    def href(self, name: str) -> Element:
+        self.attributes.append(["href", name])
+        return self
 
-    return element
+def div(*children): return Element("div", *children)
+def h1(*children):  return Element("h1",  *children)
+def h2(*children):  return Element("h2",  *children)
+def h3(*children):  return Element("h3",  *children)
+def p(*children):   return Element("p",   *children)
+def a(*children):   return Element("a",   *children)
+def ul(*children):  return Element("ul",  *children)
+def li(*children):  return Element("li",  *children)
+def pre(*children): return Element("pre", *children)
 
-def div(*children): return _makeElement("div", children)
-def h1(*children):  return _makeElement("h1",  children)
-def h2(*children):  return _makeElement("h2",  children)
-def h3(*children):  return _makeElement("h3",  children)
-def p(*children):   return _makeElement("p",   children)
-def a(*children):   return _makeElement("a",   children)
-def ul(*children):  return _makeElement("ul",  children)
-def li(*children):  return _makeElement("li",  children)
-def pre(*children): return _makeElement("pre", children)
+def _makeText(text):
+    return ["text", text]
 
-def _makeJSElem(elem):
-    if isinstance(elem, str):
-        return ["text", elem]
-
+def _makeElem(elem):
     return [
+        "elem",
         elem.tag,
         elem.attributes,
         [_makeJSElem(el) for el in elem.children]
     ]
 
+def _makeJSElem(elem):
+    if isinstance(elem, str): return _makeText(elem)
+    if isinstance(elem, Element): return _makeElem(elem)
+
 def _makeJSRouter(router):
     JSRouter = {}
 
     for key in router.keys():
-        if isinstance(router[key], Map):
+        if isinstance(router[key], Element):
             JSRouter[key] = _makeJSElem(router[key])
 
     return JSRouter

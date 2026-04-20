@@ -38,7 +38,10 @@ def build():
         print(result.stderr)
         raise SystemExit(1)
 
-    print(result.stdout) # DEBUG
+    if result.stdout:
+        print(result.stdout) # DEBUG
+
+    print("🐪 Build successful!")
 
 def format_():
     subprocess.run(["black", "src/"], check=True)
