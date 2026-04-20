@@ -1,19 +1,19 @@
 from camel import *
 
-router = makeRouter()
+camel = Router()
 
-router.route(
-    "/",
-    div(
-        h1("Hello World"),
-        p(
-            "This is a simple static site in Camel ",
-            pre("v0.1").style("display", "inline"),
-            "!",
-        ),
+camel.route("/",
+    h1("Hello World"),
+    p(
+        "This is a simple static site in Camel ",
+        pre("v0.1").style("display", "inline"),
+        "!",
     ),
 )
 
-router.route("/error404", div(h1("Error 404: Page Not Found!")))
+camel.route("/error404",
+    h1("Error 404"),
+    p("Page not found.")
+)
 
-router.generate()
+camel.generate()

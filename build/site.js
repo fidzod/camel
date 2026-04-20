@@ -1,0 +1,1 @@
+const site = {'/': ['div', [], [['h1', [], [['text', 'Hello World']]], ['p', [], [['text', 'This is a simple static site in Camel '], ['pre', [['style', 'display: inline;']], [['text', 'v0.1']]], ['text', '!']]]]], '/error404': ['div', [], [['h1', [], [['text', 'Error 404']]], ['p', [], [['text', 'Page not found.']]]]]};

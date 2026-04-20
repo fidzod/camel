@@ -26,7 +26,19 @@ def build():
     env = os.environ.copy()
     env["CAMEL_OUT"] = str(build)
 
-    subprocess.run(["python", str(app)], env=env, check=True)
+    result = subprocess.run(
+        ["python", str(app)],
+        env=env,
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print(result.stdout) # DEBUG
+        print(result.stderr)
+        raise SystemExit(1)
+
+    print(result.stdout) # DEBUG
 
 def format_():
     subprocess.run(["black", "src/"], check=True)

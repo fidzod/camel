@@ -14,23 +14,11 @@ mrf '--' '--'' '--'
 import os
 from pathlib import Path
 
-JS_TEMPLATE = """const root=document.getElementById("root");""" + \
-    """$$$;function renderElement(e){if("text"===e[0])return""" + \
-    """ document.createTextNode(e[1]);let t=document.createE""" + \
-    """lement(e[0]);for(let o of e[2])t.appendChild(renderEl""" + \
-    """ement(o));for(let o of e[1])t.setAttribute(o[0],o[1])""" + \
-    """;return t}function renderRoute(){let e=document.locat""" + \
-    """ion.hash.split("#")[1]||"/",t=site[e]||site["/error40""" + \
-    """4"];for(let e of root.children)root.removeChild(e);ro""" + \
-    """ot.appendChild(renderElement(t));}window.addEventList""" + \
-    """ener("hashchange",renderRoute),window.addEventListene""" + \
-    """r("load",renderRoute);"""
-
 class Map(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
-def makeElement(tag, children):
+def _makeElement(tag, children):
     def atr(name, value):
         element.attributes.append([name, value])
         return element
@@ -63,12 +51,6 @@ def makeElement(tag, children):
 
     def id_(v): element.attributes.append(["id", v]); return element
     def href(v): element.attributes.append(["href", v]); return element
-    def type_(v): element.attributes.append(["type", v]); return element
-    def name(v): element.attributes.append(["name", v]); return element
-    def value(v): element.attributes.append(["value", v]); return element
-    def method(v): element.attributes.append(["method", v]); return element
-    def action(v): element.attributes.append(["action", v]); return element
-    def for_(v): element.attributes.append(["for", v]); return element
 
     element = Map({
         "tag": tag,
@@ -79,35 +61,19 @@ def makeElement(tag, children):
         "class_": class_,
         "id_": id_,
         "href": href,
-        "type_": type_,
-        "name": name,
-        "value": value,
-        "method": method,
-        "action": action,
-        "for_": for_,
     })
 
     return element
 
-def div(*children):    return makeElement("div",   children)
-def p(*children):      return makeElement("p",     children)
-def h1(*children):     return makeElement("h1",    children)
-def h2(*children):     return makeElement("h2",    children)
-def h3(*children):     return makeElement("h3",    children)
-def img(*children):    return makeElement("img",   children)
-def a(*children):      return makeElement("a",     children)
-def br(*children):     return makeElement("br",    children)
-def hr(*children):     return makeElement("hr",    children)
-def ul(*children):     return makeElement("ul",    children)
-def li(*children):     return makeElement("li",    children)
-def span(*children):   return makeElement("span",  children)
-def form(*children):   return makeElement("form",  children)
-def table(*children):  return makeElement("table", children)
-def tr(*children):     return makeElement("tr",    children)
-def td(*children):     return makeElement("td",    children)
-def input_(*children): return makeElement("input", children)
-def label(*children):  return makeElement("label", children)
-def pre(*children):    return makeElement("pre", children)
+def div(*children): return _makeElement("div", children)
+def h1(*children):  return _makeElement("h1",  children)
+def h2(*children):  return _makeElement("h2",  children)
+def h3(*children):  return _makeElement("h3",  children)
+def p(*children):   return _makeElement("p",   children)
+def a(*children):   return _makeElement("a",   children)
+def ul(*children):  return _makeElement("ul",  children)
+def li(*children):  return _makeElement("li",  children)
+def pre(*children): return _makeElement("pre", children)
 
 def _makeJSElem(elem):
     if isinstance(elem, str):
@@ -128,20 +94,25 @@ def _makeJSRouter(router):
 
     return JSRouter
 
-def makeRouter():
-    def route(name, document):
-        router[name] = document
+def Router():
+    def route(name, *document):
+        router[name] = document[0] if len(document) == 1 else div(*document)
 
     def generate():
         js_doc = _makeJSRouter(router)
         
-        _template = JS_TEMPLATE.replace(
-                "$$$", "const site = " + str(js_doc))
+        site = f"const site = {js_doc};"
+        site_out = Path(os.environ.get("CAMEL_OUT", ".")) / "site.js"
 
-        out = Path(os.environ.get("CAMEL_OUT", ".")) / "camel.js"
+        with open(site_out, "w") as f:
+            f.write(site)
 
-        with open(out, "w") as f:
-            f.write(_template)
+        runtime_file = Path(__file__).parent / "runtime.js"
+        runtime_out = Path(os.environ.get("CAMEL_OUT", ".")) / "runtime.js"
+
+        with open(runtime_file, "r") as f_in:
+            with open(runtime_out, "w") as f_out:
+                f_out.write(f_in.read())
 
         return js_doc
 
