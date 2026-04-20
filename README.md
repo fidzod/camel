@@ -24,7 +24,7 @@ Install with `pip install -e .`
 
 `cml format`   — format src/ with black
 
-## V1 Example
+## V2 Example
 
 ```python
 from camel import *
