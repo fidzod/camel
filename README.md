@@ -4,7 +4,7 @@ A reactive Python-native UI framework that compiles to a self-contained vanilla 
 
 ## Project Status
 
-Early development. The v1 API is working and v2 (reactivity, state, events) is in progress.
+Early development. Core reactivity and state are working in v2.
 
 ## Structure
 
@@ -29,19 +29,20 @@ Install with `pip install -e .`
 ```python
 from camel import *
 
-router = makeRouter()
+camel = Router()
 
-router.route("/", div(
-    h1("Hello from Camel!")
-))
+camel.route('/',
+    p("Clicks: ", state.clicks),
+    button("Click Me!").onClick(increment(state.clicks))
+).useState(clicks = 0)
 
-router.generate()
+camel.generate()
 ```
 
 ## Roadmap
 
-- Page state and reactivity
-- Event handlers (onClick, onInput)
+- ~~Page state and reactivity~~
+- ~~Event handlers (onClick, onInput)~~
 - Conditional rendering (showIf)
 - Loops (each)
 - Fetch and post actions

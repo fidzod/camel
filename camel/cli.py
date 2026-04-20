@@ -19,29 +19,26 @@ def build():
     app = src / "app.py"
 
     build.mkdir(exist_ok=True)
-    
+
     if static.exists():
         shutil.copytree(static, build, dirs_exist_ok=True)
-    
+
     env = os.environ.copy()
     env["CAMEL_OUT"] = str(build)
 
     result = subprocess.run(
-        ["python", str(app)],
-        env=env,
-        capture_output=True,
-        text=True
+        ["python", str(app)], env=env, capture_output=True, text=True
     )
 
     if result.returncode != 0:
-        print(result.stdout) # DEBUG
+        print(result.stdout)  # DEBUG
         print(result.stderr)
         raise SystemExit(1)
 
     if result.stdout:
-        print(result.stdout) # DEBUG
+        print(result.stdout)  # DEBUG
 
-    print("🐪 Build successful!")
+    print("🐪✨ Build successful!")
 
 def format_():
     subprocess.run(["black", "src/"], check=True)
@@ -53,9 +50,9 @@ def main():
     subparsers.add_parser("build")
     subparsers.add_parser("watch")
     subparsers.add_parser("format")
-    
+
     args = parser.parse_args()
-    
+
     if args.command == "build":
         build()
     elif args.command == "watch":
@@ -67,3 +64,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
