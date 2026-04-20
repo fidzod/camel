@@ -8,17 +8,21 @@ Early development. The v1 API is working and v2 (reactivity, state, events) is i
 
 ## Structure
 
-camel/   — the framework
-src/     — your app (edit app.py to build your site)
-build/   — generated output, do not edit
+`camel/`   — the framework
+
+`src/`     — your app (edit app.py to build your site)
+
+`build/`   — generated output, do not edit
 
 ## CLI
 
-pip install -e .
+Install with `pip install -e .`
 
-cml build    — compile src/ to build/
-cml watch    — build and serve with live reload at localhost:5000
-cml format   — format src/ with black
+`cml build`    — compile src/ to build/
+
+`cml watch`    — build and serve with live reload at localhost:5000
+
+`cml format`   — format src/ with black
 
 ## V1 Example
 
