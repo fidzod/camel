@@ -8,7 +8,8 @@ Early development. Core reactivity, state, and conditional rendering are working
 
 ## History
 v1 was a rewrite of a single-file static site generator written by me in 2017. v2 is a
-ground-up redesign with a new API and a reactive runtime.
+ground-up redesign with a new API and a reactive runtime. v3 introduces lists, loops,
+input binding and additional primitives.
 
 ## Structure
 
