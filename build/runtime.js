@@ -6,92 +6,176 @@ let statementId = 0;
 
 const actions = {
     increment: (args) => {
-        state[args[0][1]]++;
+        state[args[0]]++;
+        updateReactiveNodes();
+    },
+    append: (args) => {
+        // n.b. append does not support hard coded values currently
+        state[args[0]].push(state[args[1]]);
+        updateReactiveNodes();
+    },
+    set: (args) => {
+        state[args[0]] = args[1];
+        updateReactiveNodes();
+    },
+    delete: (args) => {
+        state[args[0]].splice(args[1], 1);
         updateReactiveNodes();
     },
 };
 
-function resolveCondition(cond) {
-    const l = cond[1];
-    let left =
-        l[0] === "number" ? parseInt(l[1]) : l[0] === "text" ? l[1] : state[l[1]];
-
-    const r = cond[2];
-    let right =
-        r[0] === "number" ? parseInt(r[1]) : r[0] === "text" ? r[1] : state[r[1]];
-
-    if (cond[0] === "gt") return left > right;
-    if (cond[0] === "gte") return left >= right;
-    if (cond[0] === "lt") return left < right;
-    if (cond[0] === "lte") return left <= right;
-    if (cond[0] === "eq") return left === right;
+const operators = {
+    gt:  (l, r) => l > r,
+    gte: (l, r) => l >= r,
+    lt:  (l, r) => l < r,
+    lte: (l, r) => l <= r,
+    eq:  (l, r) => l === r,
 }
 
-function updateReactiveNodes() {
+const argResolvers = {
+    varRef: (arg, vars) => vars[arg[1]],
+    number: (arg) => parseInt(arg[1]),
+    text: (arg) => arg[1],
+    stateRef: (arg) => arg[1]
+};
+
+function resolveArg(arg, vars) {
+    const resolver = argResolvers[arg[0]];
+    return resolver ? resolver(arg, vars) : arg;
+}
+
+function applyCondition(cond) {
+    return operators[cond[0]](resolveArg(cond[1]), resolveArg(cond[2]));
+}
+
+function updateTextNodes() {
     document.querySelectorAll("[data-reactive]").forEach((node) => {
         const key = node.dataset.reactive;
         node.textContent = state[key];
     });
+}
+
+function updateStatements () {
     document.querySelectorAll("[data-reactive-statement]").forEach((node) => {
         const elem = reactiveStatements[node.dataset.reactiveStatement];
-        const result = resolveCondition(elem[1]);
-        if (node.dataset.lastResult === String(result)) return;
-        node.dataset.lastResult = String(result);
-        const contents = elem[!result + 2];
-        while (node.firstChild) node.removeChild(node.firstChild);
-        node.appendChild(renderElement(contents));
+
+        if (elem[0] === "if")
+        {
+            const result = applyCondition(elem[1]);
+            if (node.dataset.lastResult === String(result)) return;
+            node.dataset.lastResult = String(result);
+            const contents = elem[!result + 2];
+            while (node.firstChild) node.removeChild(node.firstChild);
+            node.appendChild(render(contents));
+        }
+        else if (elem[0] === "each")
+        {
+            const list = state[elem[1][1]];
+            const e = document.createDocumentFragment();
+            for (let [i, item] of list.entries()) {
+                const iterVars = {[elem[2]]: item, index: i};
+                e.appendChild(render(elem[3], iterVars));
+            }
+            while (node.firstChild) node.removeChild(node.firstChild);
+            node.appendChild(e);
+        }
+    });
+}
+function updateBindings () {
+    document.querySelectorAll("[data-reactive-bind]").forEach((node) => {
+        node.value = state[node.dataset.reactiveBind];
     });
 }
 
-function renderElement(elem) {
-    const type = elem[0];
+function updateReactiveNodes() {
+    updateTextNodes();
+    updateStatements();
+    updateBindings();
+}
 
-    if (type === "text") {
-        const text = elem[1];
-        return document.createTextNode(text);
-    }
+function renderText(elem, vars={}) {
+    const text = elem[1];
+    return document.createTextNode(text);
+}
 
-    if (type === "stateRef") {
-        const label = elem[1];
-        const span = document.createElement("span");
-        span.dataset.reactive = label;
-        return span;
-    }
+function renderStateRef(elem, vars={}) {
+    const label = elem[1];
+    const span = document.createElement("span");
+    span.dataset.reactive = label;
+    return span;
+}
 
-    if (type === "if") {
-        const span = document.createElement("span");
-        const id = statementId++;
-        reactiveStatements[id] = elem;
-        span.dataset.reactiveStatement = id;
-        return span;
-    }
+function renderVarRef(elem, vars={}) {
+    const label = elem[1];
+    const span = document.createElement("span");
+    const value = label.split(".").reduce((obj, key) => obj[key], vars);
+    span.textContent = value;
+    return span;
+}
 
-    // type is element
+function renderIf(elem, vars={}) {
+    const span = document.createElement("span");
+    const id = statementId++;
+    reactiveStatements[id] = elem;
+    span.dataset.reactiveStatement = id;
+    return span;
+}
 
-    const tag = elem[1],
-        attrs = elem[2],
-        children = elem[3];
+function renderEach(elem, vars={}) {
+    const span = document.createElement("span");
+    const id = statementId++;
+    reactiveStatements[id] = elem;
+    span.dataset.reactiveStatement = id;
+    return span;
+}
+
+function applyStringAttr(e, label, value) {
+    e.setAttribute(label, value);
+}
+
+function applyActionAttr(e, label, value, vars) {
+    const actionList = value;
+    e.addEventListener(label, () => {
+        actionList.forEach(([actionName, actionArgs]) => {
+            actions[actionName](actionArgs.map((a) => resolveArg(a, vars)));
+        });
+    });
+}
+
+function applyBindAttr(e, value) {
+    e.addEventListener("change", (e) => {
+        state[value[1]] = e.target.value;
+    });
+    e.dataset.reactiveBind = value[1];
+}
+
+function applyAttr(e, attr, vars) {
+    const [label, type, value] = attr;
+    if (type === "string") applyStringAttr(e, label, value);
+    else if (type === "action") applyActionAttr(e, label, value, vars);
+    else if (type === "bind") applyBindAttr(e, value);
+}
+
+function renderElem(elem, vars={}) {
+    const [_, tag, attrs, children] = elem;
     let e = document.createElement(tag);
 
-    for (let child of children) e.appendChild(renderElement(child));
+    for (let child of children) e.appendChild(render(child, vars));
 
-    for (let attr of attrs) {
-        const attrType = attr[1],
-            attrLabel = attr[0],
-            attrValue = attr[2];
-
-        if (attrType === "string") {
-            e.setAttribute(attrLabel, attrValue);
-        } else if (attrType === "action") {
-            const action = attrValue[0],
-                args = attrValue[1];
-            e.addEventListener(attrLabel, () => {
-                actions[action](args);
-            });
-        }
-    }
+    attrs.forEach((attr) => applyAttr(e, attr, vars));
 
     return e;
+}
+
+function render(elem, vars={}) {
+    const type = elem[0];
+
+    if (type === "text") return renderText(elem, vars);
+    if (type === "stateRef") return renderStateRef(elem, vars);
+    if (type === "varRef") return renderVarRef(elem, vars);
+    if (type === "if") return renderIf(elem, vars);
+    if (type === "each") return renderEach(elem, vars);
+    if (type === "elem") return renderElem(elem, vars);
 }
 
 function renderRoute() {
@@ -99,7 +183,9 @@ function renderRoute() {
     let page = site[loc] || site["/error404"];
     state = { ...page.state };
     while (root.firstChild) root.removeChild(root.firstChild);
-    root.appendChild(renderElement(page.tree));
+    reactiveStatements = {};
+    statementId = 0;
+    root.appendChild(render(page.tree));
     updateReactiveNodes();
 }
 

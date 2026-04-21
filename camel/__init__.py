@@ -1,6 +1,6 @@
 r"""
-The Camel Static Site Generator. A powerful tool for building
-dynamic Single-Page Web Applications by utilising hash routing.
+A reactive Python-native UI framework that compiles to
+a self-contained vanilla JS bundle with hash routing.
                   ,,__
         ..  ..   / o._)                   .---.
        /--'/--\  \-'||        .----.    .'     '.
@@ -33,16 +33,44 @@ class StateProxy:
 state = StateProxy()
 
 
+class VarRef:
+    def __init__(self, label: str):
+        self.label = label
+
+    def __getattr__(self, label: str) -> VarRef:
+        return VarRef(f"{self.label}.{label}")
+
+
+class VarProxy:
+    def __getattr__(self, label: str) -> VarRef:
+        return VarRef(label)
+
+
+var = VarProxy()
+
+
 @dataclass
 class Action:
     name: str
-    arguments: list[StateRef]
+    arguments: list[StateRef | int | str | VarRef]
 
 
 def increment(
     var: StateRef,
 ) -> Action:
     return Action(name="increment", arguments=[var])
+
+
+def append(list_: StateRef, value: StateRef) -> Action:
+    return Action(name="append", arguments=[list_, value])
+
+
+def set_(stateRef: StateRef, value: Any) -> Action:
+    return Action(name="set", arguments=[stateRef, value])
+
+
+def delete(stateRef: StateRef, index: int | VarRef) -> Action:
+    return Action(name="delete", arguments=[stateRef, index])
 
 
 @dataclass
@@ -88,6 +116,25 @@ def if_(
 
 
 @dataclass
+class Each:
+    list_: StateRef
+    template: list[Element | str | VarRef | StateRef]
+    itemName: str = "item"
+
+    def as_(self, itemName: VarRef) -> Each:
+        self.itemName = itemName.label
+        return self
+
+    def __call__(self, *children: Element | str | VarRef | StateRef) -> Each:
+        self.template = list(children)
+        return self
+
+
+def each(list_: StateRef) -> Each:
+    return Each(list_=list_, template=[])
+
+
+@dataclass
 class Element:
     tag: str
     children: tuple[str | Element]
@@ -120,8 +167,15 @@ class Element:
     def href(self, value: str) -> Element:
         return self.attr("href", value)
 
-    def onClick(self, action: Action) -> Element:
-        self.attributes.append(["click", "action", action])
+    def placeholder(self, value: str) -> Element:
+        return self.attr("placeholder", value)
+
+    def bind(self, stateVar: StateRef) -> Element:
+        self.attributes.append(["bind", "bind", stateVar])
+        return self
+
+    def onClick(self, *actions: Action) -> Element:
+        self.attributes.append(["click", "action", list(actions)])
         return self
 
 
@@ -165,18 +219,28 @@ def button(*children):
     return Element(tag="button", attributes=[], children=children)
 
 
+def input_(*children):
+    return Element(tag="input", attributes=[], children=children)
+
+
 def _compileAction(action: Action):
-    return [action.name, [_compileStateRef(arg) for arg in action.arguments]]
+    return [action.name, [_compile(arg) for arg in action.arguments]]
 
 
 def _compileText(text: str):
     return ["text", text]
 
 
+def _compileNumber(number: int):
+    return ["number", number]
+
+
 def _compileElement(elem: Element):
     for i, attr in enumerate(elem.attributes):
         if attr[1] == "action":
-            elem.attributes[i][2] = _compileAction(attr[2])
+            elem.attributes[i][2] = [_compileAction(action) for action in attr[2]]
+        elif attr[1] == "bind":
+            elem.attributes[i][2] = _compileStateRef(attr[2])
     return [
         "elem",
         elem.tag,
@@ -187,6 +251,10 @@ def _compileElement(elem: Element):
 
 def _compileStateRef(stateRef: StateRef):
     return ["stateRef", stateRef.label]
+
+
+def _compileVarRef(varRef: VarRef):
+    return ["varRef", varRef.label]
 
 
 def _compileCondition(condition: Condition):
@@ -217,15 +285,25 @@ def _compileIf(if_: If):
     ]
 
 
+def _compileEach(each: Each):
+    return ["each", _compile(each.list_), each.itemName, _compile(div(*each.template))]
+
+
 def _compile(elem):
     if isinstance(elem, str):
         return _compileText(elem)
+    if isinstance(elem, int):
+        return _compileNumber(elem)
     if isinstance(elem, Element):
         return _compileElement(elem)
     if isinstance(elem, StateRef):
         return _compileStateRef(elem)
+    if isinstance(elem, VarRef):
+        return _compileVarRef(elem)
     if isinstance(elem, If):
         return _compileIf(elem)
+    if isinstance(elem, Each):
+        return _compileEach(elem)
 
     raise TypeError(f"Cannot compile object of type {type(elem).__name__}")
 

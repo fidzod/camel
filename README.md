@@ -28,8 +28,9 @@ Install with `pip install -e .`
 
 `cml format`   — format src/ with black
 
-## V2 Example
+## Examples
 
+### Clicker - state, conditional rendering, events
 ```python
 from camel import *
 
@@ -43,11 +44,27 @@ camel.route('/')(
 camel.generate()
 ```
 
+### Shopping List - lists, loops, input binding
+```python
+camel.route('/')(
+    ul(
+        each(state.list)(
+            li(var.item)
+        )
+    ),
+    input_().bind(state.new),
+    button('Add').onClick(
+        append(state.list, state.new),
+        set_(state.new, '')
+    )
+).useState(list=[], new='')
+```
+
 ## Roadmap
 
 - ~~Page state and reactivity~~
 - ~~Event handlers (onClick)~~
 - ~~Conditional rendering (if_, eq)~~
-- onInput and set_
-- Loops (each)
+- ~~bind and set_~~
+- ~~Loops (each)~~
 - Fetch and post actions
