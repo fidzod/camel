@@ -4,7 +4,9 @@ A reactive Python-native UI framework that compiles to a self-contained vanilla 
 
 ## Project Status
 
-Early development. Core reactivity, state, and conditional rendering are working in v2.5.
+v3 is working and stable. Core features include state, reactivity, events, 
+list operations, conditional rendering and loops. v4 (fetch and post, API
+integration) is in progress.
 
 ## History
 v1 was a rewrite of a single-file static site generator written by me in 2017. v2 is a
