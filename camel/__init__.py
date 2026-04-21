@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 class StateRef:
@@ -182,10 +182,12 @@ class Router:
     def __init__(self):
         self.routes = {}
 
-    def route(self, name: str, *children: str | Element) -> Route:
-        r = Route(tree=div(*children), state={})
-        self.routes[name] = r
-        return r
+    def route(self, name: str) -> Callable[..., Route]:
+        def inner(*children: str | Element | StateRef):
+            r = Route(tree=div(*children), state={})
+            self.routes[name] = r
+            return r
+        return inner
 
     def generate(self) -> None:
         site = f"const site = {_compileSite(self.routes)};"
