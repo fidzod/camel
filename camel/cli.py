@@ -5,11 +5,13 @@ import shutil
 import subprocess
 from pathlib import Path
 
+
 def watch():
     build()
     server = Server()
     server.watch("src", build)
     server.serve(root="build", port=5000)
+
 
 def build():
     root = Path(__file__).parent.parent
@@ -31,17 +33,20 @@ def build():
     )
 
     if result.returncode != 0:
-        print(result.stdout)  # DEBUG
+        print(result.stdout)
+        print("Build failed with errors:\n")
         print(result.stderr)
         raise SystemExit(1)
 
     if result.stdout:
-        print(result.stdout)  # DEBUG
+        print(result.stdout)
 
     print("🐪✨ Build successful!")
 
+
 def format_():
     subprocess.run(["black", "src/"], check=True)
+
 
 def main():
     parser = argparse.ArgumentParser(prog="cml")
@@ -62,6 +67,6 @@ def main():
     else:
         parser.print_help()
 
+
 if __name__ == "__main__":
     main()
-

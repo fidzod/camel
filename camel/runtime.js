@@ -2,8 +2,11 @@ const root = document.getElementById("root");
 let state = {};
 
 const actions = {
-    "increment": (key) => { state[key]++; updateReactiveNodes(); }
-}
+    increment: (args) => {
+        state[args[0][1]]++;
+        updateReactiveNodes();
+    },
+};
 
 function renderElement(elem) {
     const type = elem[0];
@@ -20,20 +23,25 @@ function renderElement(elem) {
         return span;
     }
 
-    const tag = elem[1], attrs = elem[2], children = elem[3];
+    const tag = elem[1],
+        attrs = elem[2],
+        children = elem[3];
     let e = document.createElement(tag);
 
     for (let child of children) e.appendChild(renderElement(child));
 
     for (let attr of attrs) {
-        const attrType = attr[1], attrLabel = attr[0], attrValue = attr[2];
+        const attrType = attr[1],
+            attrLabel = attr[0],
+            attrValue = attr[2];
 
         if (attrType === "string") {
             e.setAttribute(attrLabel, attrValue);
         } else if (attrType === "action") {
-            const action = attrValue[0], stateVar = attrValue[1];
+            const action = attrValue[0],
+                args = attrValue[1];
             e.addEventListener(attrLabel, () => {
-                actions[action](stateVar)
+                actions[action](args);
             });
         }
     }
@@ -45,13 +53,13 @@ function renderRoute() {
     let loc = document.location.hash.split("#")[1] || "/";
     let page = site[loc] || site["/error404"];
     state = { ...page.state };
-    while (root.firstChild) root.removeChild(root.firstChild)
+    while (root.firstChild) root.removeChild(root.firstChild);
     root.appendChild(renderElement(page.tree));
     updateReactiveNodes();
 }
 
 function updateReactiveNodes() {
-    document.querySelectorAll('[data-reactive]').forEach(node => {
+    document.querySelectorAll("[data-reactive]").forEach((node) => {
         const key = node.dataset.reactive;
         node.textContent = state[key];
     });
@@ -59,4 +67,3 @@ function updateReactiveNodes() {
 
 window.addEventListener("hashchange", renderRoute);
 window.addEventListener("load", renderRoute);
-
