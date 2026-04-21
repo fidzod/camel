@@ -1,5 +1,8 @@
 const root = document.getElementById("root");
+
 let state = {};
+let reactiveStatements = {};
+let statementId = 0;
 
 const actions = {
     increment: (args) => {
@@ -7,6 +10,38 @@ const actions = {
         updateReactiveNodes();
     },
 };
+
+function resolveCondition(cond) {
+    const l = cond[1];
+    let left =
+        l[0] === "number" ? parseInt(l[1]) : l[0] === "text" ? l[1] : state[l[1]];
+
+    const r = cond[2];
+    let right =
+        r[0] === "number" ? parseInt(r[1]) : r[0] === "text" ? r[1] : state[r[1]];
+
+    if (cond[0] === "gt") return left > right;
+    if (cond[0] === "gte") return left >= right;
+    if (cond[0] === "lt") return left < right;
+    if (cond[0] === "lte") return left <= right;
+    if (cond[0] === "eq") return left === right;
+}
+
+function updateReactiveNodes() {
+    document.querySelectorAll("[data-reactive]").forEach((node) => {
+        const key = node.dataset.reactive;
+        node.textContent = state[key];
+    });
+    document.querySelectorAll("[data-reactive-statement]").forEach((node) => {
+        const elem = reactiveStatements[node.dataset.reactiveStatement];
+        const result = resolveCondition(elem[1]);
+        if (node.dataset.lastResult === String(result)) return;
+        node.dataset.lastResult = String(result);
+        const contents = elem[!result + 2];
+        while (node.firstChild) node.removeChild(node.firstChild);
+        node.appendChild(renderElement(contents));
+    });
+}
 
 function renderElement(elem) {
     const type = elem[0];
@@ -22,6 +57,16 @@ function renderElement(elem) {
         span.dataset.reactive = label;
         return span;
     }
+
+    if (type === "if") {
+        const span = document.createElement("span");
+        const id = statementId++;
+        reactiveStatements[id] = elem;
+        span.dataset.reactiveStatement = id;
+        return span;
+    }
+
+    // type is element
 
     const tag = elem[1],
         attrs = elem[2],
@@ -56,13 +101,6 @@ function renderRoute() {
     while (root.firstChild) root.removeChild(root.firstChild);
     root.appendChild(renderElement(page.tree));
     updateReactiveNodes();
-}
-
-function updateReactiveNodes() {
-    document.querySelectorAll("[data-reactive]").forEach((node) => {
-        const key = node.dataset.reactive;
-        node.textContent = state[key];
-    });
 }
 
 window.addEventListener("hashchange", renderRoute);

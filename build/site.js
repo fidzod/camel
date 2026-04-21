@@ -1,1 +1,1 @@
-const site = {'/': {'tree': ['elem', 'div', [], [['elem', 'p', [], [['text', 'Clicks: '], ['stateRef', 'clicks']]], ['elem', 'button', [['click', 'action', ['increment', [['stateRef', 'clicks']]]]], [['text', 'Click Me!']]]]], 'state': {'clicks': 0}}};
+const site = {'/': {'tree': ['elem', 'div', [], [['elem', 'h3', [], [['stateRef', 'clicks'], ['if', ['eq', ['stateRef', 'clicks'], ['number', 1]], ['text', ' click'], ['text', ' clicks']]]], ['elem', 'button', [['click', 'action', ['increment', [['stateRef', 'clicks']]]]], [['text', 'Click Me!']]]]], 'state': {'clicks': 0}}};

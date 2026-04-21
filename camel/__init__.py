@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 
 class StateRef:
@@ -45,11 +45,53 @@ def increment(
     return Action(name="increment", arguments=[var])
 
 
+@dataclass
+class Condition:
+    name: str
+    left: int | str | StateRef
+    right: int | str | StateRef
+
+
+def eq(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
+    return Condition(name="eq", left=left, right=right)
+
+
+def gt(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
+    return Condition(name="gt", left=left, right=right)
+
+
+def gte(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
+    return Condition(name="gte", left=left, right=right)
+
+
+def lt(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
+    return Condition(name="lt", left=left, right=right)
+
+
+def lte(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
+    return Condition(name="lte", left=left, right=right)
+
+
+@dataclass
+class If:
+    condition: Condition
+    consequent: str | Element
+    alternate: Optional[str | Element]
+
+
+def if_(
+    condition: Condition,
+    consequent: str | Element,
+    alternate: Optional[str | Element] = None,
+) -> If:
+    return If(condition=condition, consequent=consequent, alternate=alternate)
+
+
+@dataclass
 class Element:
-    def __init__(self, tag: str, *children: str | Element):
-        self.tag = tag
-        self.attributes = []
-        self.children = children
+    tag: str
+    children: tuple[str | Element]
+    attributes: list[Any]
 
     def attr(self, name, value) -> Element:
         self.attributes.append([name, "string", value])
@@ -84,43 +126,43 @@ class Element:
 
 
 def div(*children):
-    return Element("div", *children)
+    return Element(tag="div", attributes=[], children=children)
 
 
 def h1(*children):
-    return Element("h1", *children)
+    return Element(tag="h1", attributes=[], children=children)
 
 
 def h2(*children):
-    return Element("h2", *children)
+    return Element(tag="h2", attributes=[], children=children)
 
 
 def h3(*children):
-    return Element("h3", *children)
+    return Element(tag="h3", attributes=[], children=children)
 
 
 def p(*children):
-    return Element("p", *children)
+    return Element(tag="p", attributes=[], children=children)
 
 
 def a(*children):
-    return Element("a", *children)
+    return Element(tag="a", attributes=[], children=children)
 
 
 def ul(*children):
-    return Element("ul", *children)
+    return Element(tag="ul", attributes=[], children=children)
 
 
 def li(*children):
-    return Element("li", *children)
+    return Element(tag="li", attributes=[], children=children)
 
 
 def pre(*children):
-    return Element("pre", *children)
+    return Element(tag="pre", attributes=[], children=children)
 
 
 def button(*children):
-    return Element("button", *children)
+    return Element(tag="button", attributes=[], children=children)
 
 
 def _compileAction(action: Action):
@@ -147,6 +189,34 @@ def _compileStateRef(stateRef: StateRef):
     return ["stateRef", stateRef.label]
 
 
+def _compileCondition(condition: Condition):
+    left, right = condition.left, condition.right
+    return [
+        condition.name,
+        (
+            ["text", left]
+            if isinstance(left, str)
+            else ["number", left] if isinstance(left, int) else _compileStateRef(left)
+        ),
+        (
+            ["text", right]
+            if isinstance(right, str)
+            else (
+                ["number", right] if isinstance(right, int) else _compileStateRef(right)
+            )
+        ),
+    ]
+
+
+def _compileIf(if_: If):
+    return [
+        "if",
+        _compileCondition(if_.condition),
+        _compile(if_.consequent),
+        _compile(if_.alternate or ""),
+    ]
+
+
 def _compile(elem):
     if isinstance(elem, str):
         return _compileText(elem)
@@ -154,6 +224,8 @@ def _compile(elem):
         return _compileElement(elem)
     if isinstance(elem, StateRef):
         return _compileStateRef(elem)
+    if isinstance(elem, If):
+        return _compileIf(elem)
 
     raise TypeError(f"Cannot compile object of type {type(elem).__name__}")
 
@@ -187,6 +259,7 @@ class Router:
             r = Route(tree=div(*children), state={})
             self.routes[name] = r
             return r
+
         return inner
 
     def generate(self) -> None:
@@ -202,4 +275,3 @@ class Router:
         with open(runtime_file, "r") as f_in:
             with open(runtime_out, "w") as f_out:
                 f_out.write(f_in.read())
-
