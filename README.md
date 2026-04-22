@@ -4,14 +4,13 @@ A reactive Python-native UI framework that compiles to a self-contained vanilla 
 
 ## Project Status
 
-v3 is working and stable. Core features include state, reactivity, events, 
-list operations, conditional rendering and loops. v4 (fetch and post, API
-integration) is in progress.
+v4 is complete and stable. Camel supports state, reactivity, events, list operations,
+loop rendering, input binding, and API integration via fetch and post.
 
 ## History
-v1 was a rewrite of a single-file static site generator written by me in 2017. v2 is a
-ground-up redesign with a new API and a reactive runtime. v3 introduces lists, loops,
-input binding and additional primitives.
+v1 was a refactor of a single-file static site generator written by me in 2017. v2 is a
+ground-up redesign with a new API and a reactive runtime. v3 introduced lists, loops,
+input binding and additional primitives. v4 introduces API integration via fetch and post.
 
 ## Structure
 
@@ -63,6 +62,26 @@ camel.route('/')(
 ).useState(list=[], new='')
 ```
 
+### Todos - API integration
+```python
+camel.route("/")(
+    h3("Todo:"),
+    ul(
+        each(state.todos).as_(var.todo)(
+            li(
+                var.todo.text,
+                " ",
+                button("X").onClick(
+                    post(API, "todos", var.todo.id).method("DELETE")
+                ),
+            )
+        )
+    ),
+    input_().placeholder("New todo...").bind(state.new),
+    button("Add").onClick(post(API, "todos", text=state.new)),
+).useState(todos=fetch(API, "todos"), new="")
+```
+
 ## Roadmap
 
 - ~~Page state and reactivity~~
@@ -70,4 +89,5 @@ camel.route('/')(
 - ~~Conditional rendering (if_, eq)~~
 - ~~bind and set_~~
 - ~~Loops (each)~~
-- Fetch and post actions
+- ~~Fetch and post actions~~
+- Multi-page routing examples

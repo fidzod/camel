@@ -22,6 +22,29 @@ const actions = {
         state[args[0]].splice(args[1], 1);
         updateReactiveNodes();
     },
+    post: (args, vars) => {
+        const url = args[0].map((a) => resolveArg(a, vars)).join("/");
+        const pairs = args[1];
+        const method = args.length > 2 ? args[2] : "POST";
+
+        const data = Object.fromEntries(
+            pairs.map(([key, value]) => [
+                key,
+                value[0] === "stateRef" ? state[value[1]] : resolveArg(value),
+            ]),
+        );
+
+        fetch(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }).then(renderRoute);
+    },
+    refresh: () => {
+        renderRoute();
+    },
 };
 
 const operators = {
@@ -33,7 +56,7 @@ const operators = {
 };
 
 const argResolvers = {
-    varRef: (arg, vars) => vars[arg[1]],
+    varRef: (arg, vars) => arg[1].split(".").reduce((obj, key) => obj[key], vars),
     number: (arg) => parseInt(arg[1]),
     text: (arg) => arg[1],
     stateRef: (arg) => arg[1],
@@ -134,7 +157,8 @@ function applyActionAttr(e, label, value, vars) {
     const actionList = value;
     e.addEventListener(label, () => {
         actionList.forEach(([actionName, actionArgs]) => {
-            actions[actionName](actionArgs.map((a) => resolveArg(a, vars)));
+            const resolved = actionArgs.map((a) => resolveArg(a, vars));
+            actions[actionName](resolved, vars);
         });
     });
 }
@@ -175,10 +199,25 @@ function render(elem, vars = {}) {
     if (type === "elem") return renderElem(elem, vars);
 }
 
+function parseState() {
+    Object.keys(state).forEach((key) => {
+        let sv = state[key];
+        if (Array.isArray(sv) && sv.length > 0 && sv[0] === "fetch") {
+            fetch(sv[1])
+                .then((r) => r.json())
+                .then((data) => {
+                    state[key] = data;
+                    updateReactiveNodes();
+                });
+        }
+    });
+}
+
 function renderRoute() {
     let loc = document.location.hash.split("#")[1] || "/";
     let page = site[loc] || site["/error404"];
     state = { ...page.state };
+    parseState();
     while (root.firstChild) root.removeChild(root.firstChild);
     reactiveStatements = {};
     statementId = 0;

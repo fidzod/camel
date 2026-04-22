@@ -1,22 +1,24 @@
 from camel import *
 
+API = "http://127.0.0.1:8000"
+
 camel = Router()
 
 camel.route("/")(
-    h1("Shopping List"),
+    h3("Todo:"),
     ul(
-        each(state.shoppingList)(
+        each(state.todos).as_(var.todo)(
             li(
-                var.item,
+                var.todo.text,
                 " ",
-                button("X").onClick(delete(state.shoppingList, var.index)),
+                button("X").onClick(
+                    post(API, "todos", var.todo.id).method("DELETE")
+                ),
             )
         )
     ),
-    input_().bind(state.newItem).placeholder("Add item..."),
-    button("Add").onClick(
-        append(state.shoppingList, state.newItem), set_(state.newItem, "")
-    ),
-).useState(shoppingList=[], newItem="")
+    input_().placeholder("New todo...").bind(state.new),
+    button("Add").onClick(post(API, "todos", text=state.new)),
+).useState(todos=fetch(API, "todos"), new="")
 
 camel.generate()

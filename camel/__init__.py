@@ -49,10 +49,18 @@ class VarProxy:
 var = VarProxy()
 
 
+def fetch(*args: str) -> list[str]:
+    return ["fetch", "/".join(list(args))]
+
+
 @dataclass
 class Action:
     name: str
-    arguments: list[StateRef | int | str | VarRef]
+    arguments: list[Any]
+
+    def method(self, m: str) -> Action:
+        self.arguments.append(m)
+        return self
 
 
 def increment(
@@ -71,6 +79,16 @@ def set_(stateRef: StateRef, value: Any) -> Action:
 
 def delete(stateRef: StateRef, index: int | VarRef) -> Action:
     return Action(name="delete", arguments=[stateRef, index])
+
+
+def post(*args: str | VarRef, **kwargs: Any) -> Action:
+    return Action(
+        name="post",
+        arguments=[
+            [_compile(arg) for arg in args],
+            [[k, _compile(v)] for k, v in kwargs.items()],
+        ],
+    )
 
 
 @dataclass
@@ -304,6 +322,8 @@ def _compile(elem):
         return _compileIf(elem)
     if isinstance(elem, Each):
         return _compileEach(elem)
+    if isinstance(elem, list):
+        return elem
 
     raise TypeError(f"Cannot compile object of type {type(elem).__name__}")
 
