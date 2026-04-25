@@ -1,16 +1,42 @@
 # Camel 🐪
 
-A reactive Python-native UI framework that compiles to a self-contained vanilla JS bundle.
+Camel is a tool for building small reactive SPAs in python. Your website is
+a single Python file that compiles to a small, self-contained, vanilla JS bundle.
+
+```python
+from camel import *
+
+camel = Router()
+
+camel.route("/")(
+    h1("Hello, ", state.name),
+    input_().bind(state.name),
+).use_state(name="World!")
+
+camel.generate()
+```
+
+Camel compiles your app into an intermediate representation in JSON: typed atoms
+describe the UI tree, state, events, and actions. A small JS runtime interprets
+this IR, renders the initial DOM, listens for state changes, re-renders only
+affected UI nodes (state references, ForEach loops, If conditions, bound inputs)
+and executes actions (fetch, post, increment, append...) when events fire.
+
+This is an experimental project, and doesn't claim to be a production framework.
+Though being intentionally minimal might make it ideal for personal projects, small
+dashboards, etc.
 
 ## Project Status
 
-v4 is complete and stable. Camel supports state, reactivity, events, list operations,
-loop rendering, input binding, and API integration via fetch and post.
+v5 is complete and stable. Camel supports hash-based routing, state, reactivity,
+events, list operations, loop rendering, input binding, and API integration via
+fetch and post.
 
 ## History
 v1 was a refactor of a single-file static site generator written by me in 2017. v2 is a
 ground-up redesign with a new API and a reactive runtime. v3 introduced lists, loops,
-input binding and additional primitives. v4 introduces API integration via fetch and post.
+input binding and additional primitives. v4 introduced API integration via fetch and post.
+v5 entailed a full rewrite of the serialisation layer introducing a typed atom system.
 
 ## Structure
 
@@ -30,64 +56,62 @@ Install with `pip install -e .`
 
 `cml format`   — format src/ with black
 
-## Examples
+## More Examples
 
 ### Clicker - state, conditional rendering, events
 ```python
-from camel import *
-
-camel = Router()
-
 camel.route('/')(
-    h3(state.clicks, if_(eq(state.clicks, 1), " click", " clicks")),
-    button("Click Me!").onClick(increment(state.clicks))
-).useState(clicks = 0)
-
-camel.generate()
+    h3(
+        state.clicks,
+        if_(eq(state.clicks, 1))
+            .then(" click")
+            .else_(" clicks")
+    ),
+    button("Click Me!")
+        .on_click(increment(state.clicks))
+).use_state(clicks = 0)
 ```
 
 ### Shopping List - lists, loops, input binding
 ```python
 camel.route('/')(
     ul(
-        each(state.list)(
-            li(var.item)
-        )
+        for_each(state.list)(li(var.item))
     ),
-    input_().bind(state.new),
-    button('Add').onClick(
-        append(state.list, state.new),
-        set_(state.new, '')
-    )
-).useState(list=[], new='')
+    input_()
+        .bind(state.new),
+    button('Add')
+        .on_click(
+            append(state.list, state.new),
+            set_(state.new, '')
+        )
+).use_state(list=[], new='')
 ```
 
 ### Todos - API integration
 ```python
+API = "http://localhost:8000"
+
 camel.route("/")(
     h3("Todo:"),
     ul(
-        each(state.todos).as_(var.todo)(
-            li(
+        for_each(state.todos).as_('todo')(
+            p(
+                button("X")
+                    .on_click(delete(API, "todos", var.todo.id))
+                    .style("margin-right", "10px"),
                 var.todo.text,
-                " ",
-                button("X").onClick(
-                    post(API, "todos", var.todo.id).method("DELETE")
-                ),
             )
         )
     ),
-    input_().placeholder("New todo...").bind(state.new),
-    button("Add").onClick(post(API, "todos", text=state.new)),
-).useState(todos=fetch(API, "todos"), new="")
+    input_()
+        .placeholder("Add something")
+        .bind(state.newItem),
+    button("Add")
+        .on_click(
+            post(API, "todos", text=state.newItem),
+            set_(state.newItem, "")
+        ),
+).use_state(todos=fetch(API, "todos"), newItem="")
 ```
 
-## Roadmap
-
-- ~~Page state and reactivity~~
-- ~~Event handlers (onClick)~~
-- ~~Conditional rendering (if_, eq)~~
-- ~~bind and set_~~
-- ~~Loops (each)~~
-- ~~Fetch and post actions~~
-- Multi-page routing examples

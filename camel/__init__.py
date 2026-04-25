@@ -14,354 +14,348 @@ mrf '--' '--'' '--'
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import json
 import os
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Any, Optional
 
 
-class StateRef:
-    def __init__(self, label: str):
-        self.label = label
+class Serialisable:
+    def __call__(self) -> dict:
+        raise NotImplementedError
+
+
+class Renderable(Serialisable):
+    @classmethod
+    def make(cls, item: Any) -> Renderable:
+        if isinstance(item, Renderable):
+            return item
+        if isinstance(item, str):
+            return Text.make(item)
+        if isinstance(item, int):
+            return Number.make(item)
+        raise TypeError(f"Cannot make Renderable from {type(item).__name__}")
+
+    def __call__(self) -> dict:
+        raise NotImplementedError
+
+
+class Primitive(Renderable):
+    @classmethod
+    def make(cls, item: Any) -> Primitive:
+        if isinstance(item, Primitive):
+            return item
+        if isinstance(item, str):
+            return Text.make(item)
+        if isinstance(item, int):
+            return Number.make(item)
+        if isinstance(item, list):
+            return List.make(item)
+        raise TypeError(f"Cannot make Primitive from {type(item).__name__}")
+
+    def __call__(self) -> dict:
+        raise NotImplementedError
+
+
+@dataclass
+class List(Primitive):
+    items: list
+
+    @classmethod
+    def make(cls, item: list[int | str]) -> List:
+        return List(items=[Primitive.make(p) for p in item])
+
+    def __call__(self):
+        return {"type": "List", "value": [p() for p in self.items]}
+
+
+@dataclass
+class Number(Primitive):
+    number: int
+
+    @classmethod
+    def make(cls, item: int) -> Number:
+        return Number(number=item)
+
+    def __call__(self):
+        return {"type": "Number", "value": self.number}
+
+
+@dataclass
+class Text(Primitive):
+    text: str
+
+    @classmethod
+    def make(cls, item: str) -> Text:
+        return Text(text=item)
+
+    def __call__(self):
+        return {"type": "Text", "value": self.text}
+
+
+@dataclass
+class StateRef(Primitive):
+    label: str = ""
+
+    def __getattr__(self, label: str) -> StateRef:
+        return StateRef(label=f"{self.label}.{label}")
+
+    def __call__(self):
+        return {"type": "StateRef", "label": self.label}
 
 
 class StateProxy:
     def __getattr__(self, label: str) -> StateRef:
-        return StateRef(label)
+        return StateRef(label=label)
 
 
 state = StateProxy()
 
 
-class VarRef:
-    def __init__(self, label: str):
-        self.label = label
+@dataclass
+class VarRef(Primitive):
+    label: str
 
     def __getattr__(self, label: str) -> VarRef:
-        return VarRef(f"{self.label}.{label}")
+        return VarRef(label=f"{self.label}.{label}")
+
+    def __call__(self):
+        return {"type": "VarRef", "label": self.label}
 
 
 class VarProxy:
     def __getattr__(self, label: str) -> VarRef:
-        return VarRef(label)
+        return VarRef(label=label)
 
 
 var = VarProxy()
 
 
-def fetch(*args: str) -> list[str]:
-    return ["fetch", "/".join(list(args))]
+@dataclass
+class Fetch(Primitive):
+    url: str
+
+    def __call__(self):
+        return {"type": "Fetch", "url": self.url}
+
+
+def fetch(*partialUrl: str) -> Fetch:
+    return Fetch(url="/".join(list(partialUrl)))
 
 
 @dataclass
-class Action:
+class Action(Serialisable):
     name: str
-    arguments: list[Any]
+    arguments: list[Primitive]
 
-    def method(self, m: str) -> Action:
-        self.arguments.append(m)
+    def __call__(self):
+        return {
+            "type": "Action",
+            "name": self.name,
+            "arguments": [Primitive.make(a)() for a in self.arguments],
+        }
+
+
+increment = lambda x: Action(name="increment", arguments=[x])
+push = lambda l, x: Action(name="push", arguments=[l, x])
+set_ = lambda sr, x: Action(name="set", arguments=[sr, x])
+remove = lambda l, x: Action(name="remove", arguments=[l, x])
+delete = lambda *url: Action(name="delete", arguments=list(url))
+post = lambda *url, **body: Action(
+    name="post", arguments=list(url) + [[k, body[k]] for k in body.keys()] + [len(url)]
+)
+
+
+@dataclass
+class Event(Serialisable):
+    name: str
+    actions: list[Action]
+
+    def __call__(self):
+        return {
+            "type": "Event",
+            "name": self.name,
+            "actions": [a() for a in self.actions],
+        }
+
+
+@dataclass
+class Element(Renderable):
+    tag: str
+    children: list[Renderable]
+    events: list[Event] = field(default_factory=list)
+    attributes: dict[str, str] = field(default_factory=dict)
+    class_list: list[str] = field(default_factory=list)
+    bound_to: Optional[StateRef] = None
+
+    def __call__(self):
+        element = {
+            "type": "Element",
+            "tag": self.tag,
+            "children": [Renderable.make(c)() for c in self.children],
+            "attributes": self.attributes,
+            "events": [e() for e in self.events],
+            "classes": " ".join(self.class_list),
+            "boundTo": None if self.bound_to is None else self.bound_to(),
+        }
+        return element
+
+    def on_click(self, *actions: Action) -> Element:
+        self.events.append(Event(name="click", actions=list(actions)))
         return self
 
+    def bind(self, stateRef: StateRef) -> Element:
+        self.bound_to = stateRef
+        return self
 
-def increment(
-    var: StateRef,
-) -> Action:
-    return Action(name="increment", arguments=[var])
+    def attr(self, **attrs: str) -> Element:
+        self.attributes |= attrs
+        return self
+
+    def cls(self, class_name: str) -> Element:
+        self.class_list.append(class_name)
+        return self
+
+    def style(self, atrName: str, atrValue: str) -> Element:
+        if self.attributes.get("style") is None:
+            self.attr(style="")
+        self.attributes["style"] += f"{atrName}: {atrValue};"
+        return self
+
+    def placeholder(self, value: str) -> Element:
+        return self.attr(placeholder=value)
 
 
-def append(list_: StateRef, value: StateRef) -> Action:
-    return Action(name="append", arguments=[list_, value])
-
-
-def set_(stateRef: StateRef, value: Any) -> Action:
-    return Action(name="set", arguments=[stateRef, value])
-
-
-def delete(stateRef: StateRef, index: int | VarRef) -> Action:
-    return Action(name="delete", arguments=[stateRef, index])
-
-
-def post(*args: str | VarRef, **kwargs: Any) -> Action:
-    return Action(
-        name="post",
-        arguments=[
-            [_compile(arg) for arg in args],
-            [[k, _compile(v)] for k, v in kwargs.items()],
-        ],
-    )
+h1 = lambda *children: Element(tag="h1", children=list(children))
+h2 = lambda *children: Element(tag="h2", children=list(children))
+h3 = lambda *children: Element(tag="h3", children=list(children))
+h4 = lambda *children: Element(tag="h4", children=list(children))
+h5 = lambda *children: Element(tag="h5", children=list(children))
+h6 = lambda *children: Element(tag="h6", children=list(children))
+p = lambda *children: Element(tag="p", children=list(children))
+span = lambda *children: Element(tag="span", children=list(children))
+div = lambda *children: Element(tag="div", children=list(children))
+ul = lambda *children: Element(tag="ul", children=list(children))
+li = lambda *children: Element(tag="li", children=list(children))
+button = lambda *children: Element(tag="button", children=list(children))
+input_ = lambda **attrs: Element(tag="input", children=[], attributes=attrs)
 
 
 @dataclass
 class Condition:
     name: str
-    left: int | str | StateRef
-    right: int | str | StateRef
+    x: Primitive
+    y: Optional[Primitive] = None
+
+    def __call__(self):
+        return {
+            "type": "Condition",
+            "name": self.name,
+            "x": Primitive.make(self.x)(),
+            "y": None if self.y is None else Primitive.make(self.y)(),
+        }
 
 
-def eq(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
-    return Condition(name="eq", left=left, right=right)
-
-
-def gt(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
-    return Condition(name="gt", left=left, right=right)
-
-
-def gte(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
-    return Condition(name="gte", left=left, right=right)
-
-
-def lt(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
-    return Condition(name="lt", left=left, right=right)
-
-
-def lte(left: int | str | StateRef, right: int | str | StateRef) -> Condition:
-    return Condition(name="lte", left=left, right=right)
+eq = lambda x, y: Condition(name="eq", x=x, y=y)
+gt = lambda x, y: Condition(name="gt", x=x, y=y)
+gte = lambda x, y: Condition(name="gte", x=x, y=y)
+lt = lambda x, y: Condition(name="lt", x=x, y=y)
+lte = lambda x, y: Condition(name="lte", x=x, y=y)
 
 
 @dataclass
-class If:
+class If(Renderable):
     condition: Condition
-    consequent: str | Element
-    alternate: Optional[str | Element]
+    consequent: Renderable
+    alternate: Optional[Renderable] = None
+
+    def then(self, consequent: Renderable) -> If:
+        self.consequent = consequent
+        return self
+
+    def else_(self, alternate: Renderable) -> If:
+        self.alternate = alternate
+        return self
+
+    def __call__(self):
+        return {
+            "type": "If",
+            "condition": self.condition(),
+            "consequent": self.consequent(),
+            "alternate": None if self.alternate is None else self.alternate(),
+        }
 
 
-def if_(
-    condition: Condition,
-    consequent: str | Element,
-    alternate: Optional[str | Element] = None,
-) -> If:
-    return If(condition=condition, consequent=consequent, alternate=alternate)
+def if_(condition: Condition) -> If:
+    return If(condition=condition, consequent=span("True"))
 
 
 @dataclass
-class Each:
-    list_: StateRef
-    template: list[Element | str | VarRef | StateRef]
-    itemName: str = "item"
+class ForEach(Renderable):
+    list_: List | StateRef
+    var: str
+    body: Renderable
 
-    def as_(self, itemName: VarRef) -> Each:
-        self.itemName = itemName.label
-        return self
-
-    def __call__(self, *children: Element | str | VarRef | StateRef) -> Each:
-        self.template = list(children)
-        return self
-
-
-def each(list_: StateRef) -> Each:
-    return Each(list_=list_, template=[])
+    def __call__(self):
+        return {
+            "type": "ForEach",
+            "list": self.list_(),
+            "var": self.var,
+            "body": self.body(),
+        }
 
 
 @dataclass
-class Element:
-    tag: str
-    children: tuple[str | Element]
-    attributes: list[Any]
+class ForEachPartial:
+    list_: List | StateRef
+    var: str = "item"
 
-    def attr(self, name, value) -> Element:
-        self.attributes.append([name, "string", value])
+    def as_(self, var: str) -> ForEachPartial:
+        self.var = var
         return self
 
-    def style(self, atr: str, value: str) -> Element:
-        style = f"{atr}: {value};"
-        existing = next((atr for atr in self.attributes if atr[0] == "style"), None)
-        if existing:
-            existing[2] += f" {style}"
-        else:
-            self.attributes.append(["style", "string", style])
-        return self
-
-    def cls(self, name: str) -> Element:
-        existing = next((atr for atr in self.attributes if atr[0] == "class"), None)
-        if existing:
-            existing[2] += f" {name}"
-        else:
-            self.attributes.append(["class", "string", name])
-        return self
-
-    def id_(self, value: str) -> Element:
-        return self.attr("id", value)
-
-    def href(self, value: str) -> Element:
-        return self.attr("href", value)
-
-    def placeholder(self, value: str) -> Element:
-        return self.attr("placeholder", value)
-
-    def bind(self, stateVar: StateRef) -> Element:
-        self.attributes.append(["bind", "bind", stateVar])
-        return self
-
-    def onClick(self, *actions: Action) -> Element:
-        self.attributes.append(["click", "action", list(actions)])
-        return self
+    def __call__(self, body: Renderable) -> ForEach:
+        return ForEach(list_=self.list_, var=self.var, body=body)
 
 
-def div(*children):
-    return Element(tag="div", attributes=[], children=children)
-
-
-def h1(*children):
-    return Element(tag="h1", attributes=[], children=children)
-
-
-def h2(*children):
-    return Element(tag="h2", attributes=[], children=children)
-
-
-def h3(*children):
-    return Element(tag="h3", attributes=[], children=children)
-
-
-def p(*children):
-    return Element(tag="p", attributes=[], children=children)
-
-
-def a(*children):
-    return Element(tag="a", attributes=[], children=children)
-
-
-def ul(*children):
-    return Element(tag="ul", attributes=[], children=children)
-
-
-def li(*children):
-    return Element(tag="li", attributes=[], children=children)
-
-
-def pre(*children):
-    return Element(tag="pre", attributes=[], children=children)
-
-
-def button(*children):
-    return Element(tag="button", attributes=[], children=children)
-
-
-def input_(*children):
-    return Element(tag="input", attributes=[], children=children)
-
-
-def _compileAction(action: Action):
-    return [action.name, [_compile(arg) for arg in action.arguments]]
-
-
-def _compileText(text: str):
-    return ["text", text]
-
-
-def _compileNumber(number: int):
-    return ["number", number]
-
-
-def _compileElement(elem: Element):
-    for i, attr in enumerate(elem.attributes):
-        if attr[1] == "action":
-            elem.attributes[i][2] = [_compileAction(action) for action in attr[2]]
-        elif attr[1] == "bind":
-            elem.attributes[i][2] = _compileStateRef(attr[2])
-    return [
-        "elem",
-        elem.tag,
-        elem.attributes,
-        [_compile(el) for el in elem.children],
-    ]
-
-
-def _compileStateRef(stateRef: StateRef):
-    return ["stateRef", stateRef.label]
-
-
-def _compileVarRef(varRef: VarRef):
-    return ["varRef", varRef.label]
-
-
-def _compileCondition(condition: Condition):
-    left, right = condition.left, condition.right
-    return [
-        condition.name,
-        (
-            ["text", left]
-            if isinstance(left, str)
-            else ["number", left] if isinstance(left, int) else _compileStateRef(left)
-        ),
-        (
-            ["text", right]
-            if isinstance(right, str)
-            else (
-                ["number", right] if isinstance(right, int) else _compileStateRef(right)
-            )
-        ),
-    ]
-
-
-def _compileIf(if_: If):
-    return [
-        "if",
-        _compileCondition(if_.condition),
-        _compile(if_.consequent),
-        _compile(if_.alternate or ""),
-    ]
-
-
-def _compileEach(each: Each):
-    return ["each", _compile(each.list_), each.itemName, _compile(div(*each.template))]
-
-
-def _compile(elem):
-    if isinstance(elem, str):
-        return _compileText(elem)
-    if isinstance(elem, int):
-        return _compileNumber(elem)
-    if isinstance(elem, Element):
-        return _compileElement(elem)
-    if isinstance(elem, StateRef):
-        return _compileStateRef(elem)
-    if isinstance(elem, VarRef):
-        return _compileVarRef(elem)
-    if isinstance(elem, If):
-        return _compileIf(elem)
-    if isinstance(elem, Each):
-        return _compileEach(elem)
-    if isinstance(elem, list):
-        return elem
-
-    raise TypeError(f"Cannot compile object of type {type(elem).__name__}")
-
-
-def _compileSite(routes: dict[str, Route]):
-    site = {}
-
-    for key in routes.keys():
-        route = routes[key]
-        site[key] = {"tree": _compile(route.tree), "state": route.state}
-
-    return site
+def for_each(list_: StateRef | list[str | int]) -> ForEachPartial:
+    return ForEachPartial(
+        list_=list_ if isinstance(list_, StateRef) else List.make(list_)
+    )
 
 
 @dataclass
 class Route:
-    tree: Element
-    state: dict[str, Any]
+    tree: list[Renderable]
+    state: dict[str, Primitive] = field(default_factory=dict)
 
-    def useState(self, **kwargs: Any) -> Route:
-        self.state = kwargs
+    def __call__(self):
+        return {
+            "tree": [atom() for atom in self.tree],
+            "state": {k: v() for k, v in self.state.items()},
+        }
+
+    def use_state(self, **stateVars: int | str | list[int | str] | Fetch) -> Route:
+        for k, v in stateVars.items():
+            self.state[k] = Primitive.make(v)
         return self
 
 
 class Router:
     def __init__(self):
-        self.routes = {}
+        self.routes: dict[str, Route] = {}
 
     def route(self, name: str) -> Callable[..., Route]:
-        def inner(*children: str | Element | StateRef):
-            r = Route(tree=div(*children), state={})
+        def inner(*children: Renderable):
+            r = Route(tree=list(children))
             self.routes[name] = r
             return r
 
         return inner
 
     def generate(self) -> None:
-        site = f"const site = {_compileSite(self.routes)};"
+        site = f"const site = {json.dumps(self())};"
         site_out = Path(os.environ.get("CAMEL_OUT", ".")) / "site.js"
 
         with open(site_out, "w") as f:
@@ -373,3 +367,6 @@ class Router:
         with open(runtime_file, "r") as f_in:
             with open(runtime_out, "w") as f_out:
                 f_out.write(f_in.read())
+
+    def __call__(self):
+        return {k: v() for k, v in self.routes.items()}
