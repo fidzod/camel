@@ -14,3 +14,5 @@ site = (
         )
     )
 )
+
+print(to_ir(site))
