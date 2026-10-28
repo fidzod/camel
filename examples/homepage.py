@@ -2,7 +2,7 @@ from camel import *
 
 site = (
     (h1.brand_color > "Camel.py") +
-    (p > ("Camel" + (pre > "v6") + "demo")) +
+    (p > ("Camel" + (code > " v6 ") + "demo")) +
     (div.card.featured >
         ((h2 > "What's new in v6?") +
             (ul > (

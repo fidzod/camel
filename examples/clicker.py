@@ -1,7 +1,7 @@
 from camel import *
 
 clicker = let(clicks=0).in_(
-    (h3 > (
+    (h3.red > (
         state.clicks
             + " "
             + if_(state.clicks == 1).then("click").otherwise("clicks")
