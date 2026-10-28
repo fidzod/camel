@@ -18,9 +18,10 @@ __all__ = [
     "code",
     "let",
     "state",
+    "if_",
 ]
 
-from camel.dsl import Elem, Let, StateRefProxy
+from camel.dsl import Condition, Elem, Let, PartialIf, StateRefProxy
 
 # HTML Tags
 h1 = Elem("h1")
@@ -48,3 +49,8 @@ def let(**bindings: int | str):
 
 
 state = StateRefProxy()
+
+
+# Conditionals
+def if_(cond: Condition) -> PartialIf:
+    return PartialIf(cond)

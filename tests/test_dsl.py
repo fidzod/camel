@@ -5,7 +5,18 @@ import dataclasses
 import pytest
 from hypothesis import given, strategies as st
 
-from camel.dsl import Elem, Fragment, Let, State, StateRef, StateRefProxy
+from camel.dsl import (
+    Condition,
+    Elem,
+    Empty,
+    Fragment,
+    If,
+    Let,
+    PartialIf,
+    State,
+    StateRef,
+    StateRefProxy,
+)
 
 
 def test_bool_is_disallowed():
@@ -97,14 +108,19 @@ def test_state_nests_as_a_child():
     assert nested.children == (State((("clicks", 0),), Elem("h3")),)
 
 
-def test_state_ref_equality():
-    assert StateRef("clicks") == StateRef("clicks")
-    assert StateRef("clicks") != StateRef("other")
+def test_state_ref_eq_builds_condition():
+    condition = StateRef("clicks") == 1
+    assert condition == Condition("Eq", StateRef("clicks"), 1)
+
+
+def test_condition_has_no_truth_value():
+    with pytest.raises(TypeError):
+        bool(StateRef("clicks") == 1)
 
 
 def test_state_ref_proxy_builds_named_refs():
     proxy = StateRefProxy()
-    assert proxy.clicks == StateRef("clicks")
+    assert proxy.clicks.name == StateRef("clicks").name
 
 
 def test_state_ref_proxy_rejects_underscore_names():
@@ -112,3 +128,39 @@ def test_state_ref_proxy_rejects_underscore_names():
     assert not hasattr(proxy, "_private")
     with pytest.raises(AttributeError):
         proxy._private
+
+
+def test_empty_is_hashable_and_equal():
+    assert Empty() == Empty()
+    assert hash(Empty()) == hash(Empty())
+
+
+def test_then_defaults_otherwise_to_empty():
+    built = PartialIf(StateRef("clicks") == 1).then("click")
+    assert built == If(Condition("Eq", StateRef("clicks"), 1), "click", Empty())
+
+
+def test_otherwise_replaces_the_default():
+    built = PartialIf(StateRef("clicks") == 1).then("click").otherwise("clicks")
+    assert built == If(Condition("Eq", StateRef("clicks"), 1), "click", "clicks")
+
+
+def test_then_and_otherwise_reject_invalid_children():
+    with pytest.raises(TypeError):
+        PartialIf(StateRef("clicks") == 1).then(42)  # pyright: ignore[reportArgumentType]
+    with pytest.raises(TypeError):
+        PartialIf(StateRef("clicks") == 1).then("click").otherwise(42)  # pyright: ignore[reportArgumentType]
+
+
+def test_if_equality_survives_nested_state_refs():
+    # Regression: Condition's default eq would recurse into StateRef.__eq__,
+    # which returns a Condition rather than a bool, poisoning equality for
+    # anything containing one - including a full Elem tree.
+    tree1 = Elem("h3") > PartialIf(StateRef("clicks") == 1).then("click")
+    tree2 = Elem("h3") > PartialIf(StateRef("clicks") == 1).then("click")
+    assert tree1 == tree2
+
+
+def test_state_ref_inequality_raises_rather_than_lying():
+    with pytest.raises(TypeError):
+        StateRef("clicks") != StateRef("other")  # pyright: ignore[reportUnusedExpression]

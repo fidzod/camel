@@ -11,7 +11,12 @@ clicker = with_ (clicks = 0) .in_ (
 """
 
 clicker = let(clicks=0).in_(
-    (h3 > (state.clicks + " clicks")) + (button > "Click Me!")
+    (h3 > (
+        state.clicks
+            + " "
+            + if_(state.clicks == 1).then("click").otherwise("clicks")
+    ))
+    + (button > "Click Me!")
 )
 
 print(to_ir(clicker))

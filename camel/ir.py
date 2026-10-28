@@ -3,11 +3,13 @@ from __future__ import annotations
 __all__ = ["to_ir"]
 
 from functools import singledispatch
-from typing import Literal, TypedDict
-from camel.dsl import Elem, Fragment, State, StateRef
+from typing import Literal, TypedDict, cast
+from camel.dsl import Condition, Elem, Empty, Fragment, If, State, StateRef, Value
 
 # See docs/ir.md
-type IRNode = ElemIR | FragmentIR | TextIR | StateIR | StateRefIR
+type IRNode = ElemIR | FragmentIR | TextIR | StateIR | StateRefIR | EmptyIR | IfIR
+
+type ValueIR = LiteralIR | StateRefIR
 
 
 class ElemIR(TypedDict):
@@ -20,6 +22,10 @@ class ElemIR(TypedDict):
 class FragmentIR(TypedDict):
     type: Literal["Fragment"]
     children: tuple[IRNode, ...]
+
+
+class EmptyIR(TypedDict):
+    type: Literal["Empty"]
 
 
 class TextIR(TypedDict):
@@ -36,6 +42,25 @@ class StateIR(TypedDict):
 class StateRefIR(TypedDict):
     type: Literal["StateRef"]
     name: str
+
+
+class IfIR(TypedDict):
+    type: Literal["If"]
+    condition: ConditionIR
+    then: IRNode
+    otherwise: IRNode
+
+
+class ConditionIR(TypedDict):
+    type: Literal["Condition"]
+    op: Literal["Eq"]  # "Gt", ...
+    left: ValueIR
+    right: ValueIR
+
+
+class LiteralIR(TypedDict):
+    type: Literal["Literal"]
+    value: int | str
 
 
 @singledispatch
@@ -62,6 +87,11 @@ def _(fragment: Fragment) -> FragmentIR:
 
 
 @to_ir.register
+def _(empty: Empty) -> EmptyIR:
+    return {"type": "Empty"}
+
+
+@to_ir.register
 def _(node: str) -> TextIR:
     return {"type": "Text", "contents": node}
 
@@ -78,3 +108,28 @@ def _(state: State) -> StateIR:
 @to_ir.register
 def _(state_ref: StateRef) -> StateRefIR:
     return {"type": "StateRef", "name": state_ref.name}
+
+
+def _value_to_ir(value: Value) -> LiteralIR | StateRefIR:
+    if isinstance(value, StateRef):
+        return cast(StateRefIR, to_ir(value))
+    return {"type": "Literal", "value": value}
+
+
+def _condition_to_ir(condition: Condition) -> ConditionIR:
+    return {
+        "type": "Condition",
+        "op": condition.op,
+        "left": _value_to_ir(condition.left),
+        "right": _value_to_ir(condition.right)
+    }
+
+
+@to_ir.register
+def _(if_: If) -> IfIR:
+    return {
+        "type": "If",
+        "condition": _condition_to_ir(if_.condition),
+        "then": to_ir(if_.then),
+        "otherwise": to_ir(if_.otherwise_)
+    }

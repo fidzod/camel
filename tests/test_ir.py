@@ -4,7 +4,7 @@ from typing import cast
 
 import pytest
 
-from camel.dsl import Elem, Let, StateRef
+from camel.dsl import Elem, Empty, Let, PartialIf, StateRef
 from camel.ir import ElemIR, TextIR, to_ir
 
 
@@ -54,6 +54,32 @@ def test_state():
             "children": ({"type": "StateRef", "name": "clicks"},),
         },
     }
+
+
+def test_empty():
+    assert to_ir(Empty()) == {"type": "Empty"}
+
+
+def test_if_with_literal_and_explicit_otherwise():
+    built = PartialIf(StateRef("clicks") == 1).then("click").otherwise("clicks")
+    assert to_ir(built) == {
+        "type": "If",
+        "condition": {
+            "type": "Condition",
+            "op": "Eq",
+            "left": {"type": "StateRef", "name": "clicks"},
+            "right": {"type": "Literal", "value": 1},
+        },
+        "then": {"type": "Text", "contents": "click"},
+        "otherwise": {"type": "Text", "contents": "clicks"},
+    }
+
+
+def test_if_otherwise_defaults_to_empty():
+    built = PartialIf(StateRef("clicks") == 1).then("click")
+    ir = to_ir(built)
+    assert ir["type"] == "If"
+    assert ir["otherwise"] == {"type": "Empty"}
 
 
 def test_realistic_tree_compiles_flat():
