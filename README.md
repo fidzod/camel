@@ -40,21 +40,25 @@ v5 entailed a full rewrite of the serialisation layer introducing a typed atom s
 
 ## Structure
 
-`camel/`   — the framework
+`camel/`     — the framework
 
-`src/`     — your app (edit app.py to build your site)
+`tests/`     — tests for the framework
 
-`build/`   — generated output, do not edit
+`docs/`      — design docs (e.g. the IR, see `docs/ir.md`)
+
+`examples/`  — example sites, for reference and manual testing
+
+`build/`     — generated output
 
 ## CLI
 
 Install with `pip install -e .`
 
-`cml build`    — compile src/ to build/
+`cml build <path>` — run the given Python file and compile it to build/
 
-`cml watch`    — build and serve with live reload at localhost:5000
+`cml watch <path>` — build and serve with live reload at localhost:5000
 
-`cml format`   — format src/ with black
+`cml format`       — format the current directory with black
 
 ## More Examples
 
