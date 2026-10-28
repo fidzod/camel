@@ -12,9 +12,9 @@ a self-contained vanilla JS bundle with hash routing.
 mrf '--' '--'' '--'
 """
 
-from camel import dsl, ir, elems
+from camel import dsl, ir, prelude
 from camel.dsl import *
 from camel.ir import *
-from camel.elems import *
+from camel.prelude import *
 
-__all__ = dsl.__all__ + ir.__all__ + elems.__all__
+__all__ = dsl.__all__ + ir.__all__ + prelude.__all__

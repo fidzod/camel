@@ -16,10 +16,13 @@ __all__ = [
     "input_",
     "pre",
     "code",
+    "let",
+    "state",
 ]
 
-from camel.dsl import Elem
+from camel.dsl import Elem, Let, StateRefProxy
 
+# HTML Tags
 h1 = Elem("h1")
 h2 = Elem("h2")
 h3 = Elem("h3")
@@ -37,3 +40,11 @@ button = Elem("button")
 input_ = Elem("input")
 pre = Elem("pre")
 code = Elem("code")
+
+
+# State
+def let(**bindings: int | str):
+    return Let(tuple(bindings.items()))
+
+
+state = StateRefProxy()

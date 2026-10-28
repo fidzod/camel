@@ -1,8 +1,9 @@
 # Camel IR
 
 Reference for the JSON intermediate representation Camel compiles the DSL to.
-This doc just covers what's implemented so far (`Elem`, `Fragment`, and `Text`)
-- state, actions, and events will be designed separately once they exist.
+This doc just covers what's implemented so far (`Elem`, `Fragment`, `Text`,
+`State`, `StateRef`) - conditionals, actions, and events will be designed
+separately once they exist.
 
 ## Shape
 
@@ -51,3 +52,30 @@ resolves to this same `Fragment` convention.
 |----------|--------|
 | contents | string |
 
+### State
+
+```json
+{"type": "State", "initial": {"clicks": 0}, "child": {...}}
+```
+
+| field   | type                        |
+|---------|-----------------------------|
+| initial | dict[string, int \| string] |
+| child   | Node                        |
+
+Introduces a lexical scope over `child`: each entry in `initial` declares a
+named, reactive value, initialised to the given value. `State` nests freely
+- there is no requirement that it only appear at the root of a tree.
+
+### StateRef
+
+```json
+{"type": "StateRef", "name": "clicks"}
+```
+
+| field | type   |
+|-------|--------|
+| name  | string |
+
+Resolves `name` by walking outward through enclosing `State` nodes, innermost
+first.

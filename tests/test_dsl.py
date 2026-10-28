@@ -5,7 +5,7 @@ import dataclasses
 import pytest
 from hypothesis import given, strategies as st
 
-from camel.dsl import Elem, Fragment
+from camel.dsl import Elem, Fragment, Let, State, StateRef, StateRefProxy
 
 
 def test_bool_is_disallowed():
@@ -68,3 +68,47 @@ def test_fragment_children_never_contain_a_fragment(parts):
         result = result + part
     if isinstance(result, Fragment):
         assert all(not isinstance(child, Fragment) for child in result.children)
+
+
+def test_add_and_gt_reject_invalid_children():
+    with pytest.raises(TypeError):
+        _ = Elem("div") + Let((("clicks", 0),))  # pyright: ignore[reportOperatorIssue]
+    with pytest.raises(TypeError):
+        _ = Elem("div") > 42  # pyright: ignore[reportOperatorIssue]
+
+
+def test_let_in_builds_state():
+    built = Let((("clicks", 0),)).in_(Elem("h3"))
+    assert built == State((("clicks", 0),), Elem("h3"))
+
+
+def test_let_in_rejects_invalid_child():
+    with pytest.raises(TypeError):
+        Let((("clicks", 0),)).in_(42)  # pyright: ignore[reportArgumentType]
+
+
+def test_state_and_let_are_hashable():
+    hash(State((("clicks", 0),), Elem("h3")))  # must not raise
+    hash(Let((("clicks", 0),)))  # must not raise
+
+
+def test_state_nests_as_a_child():
+    nested = Elem("div") > Let((("clicks", 0),)).in_(Elem("h3"))
+    assert nested.children == (State((("clicks", 0),), Elem("h3")),)
+
+
+def test_state_ref_equality():
+    assert StateRef("clicks") == StateRef("clicks")
+    assert StateRef("clicks") != StateRef("other")
+
+
+def test_state_ref_proxy_builds_named_refs():
+    proxy = StateRefProxy()
+    assert proxy.clicks == StateRef("clicks")
+
+
+def test_state_ref_proxy_rejects_underscore_names():
+    proxy = StateRefProxy()
+    assert not hasattr(proxy, "_private")
+    with pytest.raises(AttributeError):
+        proxy._private

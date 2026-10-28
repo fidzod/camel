@@ -4,7 +4,7 @@ from typing import cast
 
 import pytest
 
-from camel.dsl import Elem
+from camel.dsl import Elem, Let, StateRef
 from camel.ir import ElemIR, TextIR, to_ir
 
 
@@ -36,6 +36,24 @@ def test_fragment():
 def test_unregistered_type_raises():
     with pytest.raises(TypeError):
         to_ir(42)
+
+
+def test_state_ref():
+    assert to_ir(StateRef("clicks")) == {"type": "StateRef", "name": "clicks"}
+
+
+def test_state():
+    state = Let((("clicks", 0),)).in_(Elem("h3") > StateRef("clicks"))
+    assert to_ir(state) == {
+        "type": "State",
+        "initial": {"clicks": 0},
+        "child": {
+            "type": "Elem",
+            "tag": "h3",
+            "classes": (),
+            "children": ({"type": "StateRef", "name": "clicks"},),
+        },
+    }
 
 
 def test_realistic_tree_compiles_flat():

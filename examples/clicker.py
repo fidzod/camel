@@ -10,6 +10,8 @@ clicker = with_ (clicks = 0) .in_ (
 )
 """
 
-clicker = (h3 > "0 clicks") + (button > "Click Me!")
+clicker = let(clicks=0).in_(
+    (h3 > (state.clicks + " clicks")) + (button > "Click Me!")
+)
 
 print(to_ir(clicker))

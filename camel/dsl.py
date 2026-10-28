@@ -1,11 +1,31 @@
 from __future__ import annotations
 
-__all__ = ["Node", "Elem", "Fragment"]
+__all__ = ["Node", "Elem", "Fragment", "Let", "StateRefProxy"]
 
+from collections.abc import Iterable, Iterator
 import dataclasses
 from dataclasses import dataclass
+from typing import Any
 
 type Child = Node | str
+
+
+def _is_child(x: Any) -> bool:
+    return isinstance(x, Child.__value__)
+
+
+def _require_child(x: Any) -> None:
+    if not _is_child(x):
+        raise TypeError(f"{x!r} is not a valid child: expected a Node or str")
+
+
+def _flatten(items: Iterable[Child]) -> Iterator[Child]:
+    for item in items:
+        if isinstance(item, Fragment):
+            yield from _flatten(item.children)
+        else:
+            _require_child(item)
+            yield item
 
 
 class Node:
@@ -17,14 +37,6 @@ class Node:
 
     def __bool__(self):
         raise TypeError("Nodes have no truth value; parenthesise `>` chains")
-
-
-def _flatten(items):
-    for item in items:
-        if isinstance(item, Fragment):
-            yield from _flatten(item.children)
-        else:
-            yield item
 
 
 @dataclass(frozen=True)
@@ -51,3 +63,33 @@ class Fragment(Node):
 
 def _fragment(*items) -> Fragment:
     return Fragment(tuple(_flatten(items)))
+
+
+type Bindings = tuple[tuple[str, int | str], ...]
+
+
+@dataclass(frozen=True)
+class State(Node):
+    initial: Bindings
+    child: Child
+
+
+@dataclass(frozen=True)
+class Let:
+    bindings: Bindings
+
+    def in_(self, child: Child) -> State:
+        _require_child(child)
+        return State(self.bindings, child)
+
+
+@dataclass(frozen=True)
+class StateRef(Node):
+    name: str
+
+
+class StateRefProxy:
+    def __getattr__(self, name: str) -> StateRef:
+        if name.startswith("_"):
+            raise AttributeError(name) from None
+        return StateRef(name)
