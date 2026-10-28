@@ -6,9 +6,11 @@ import pytest
 from hypothesis import given, strategies as st
 
 from camel.dsl import (
+    Action,
     Condition,
     Elem,
     Empty,
+    Event,
     Fragment,
     If,
     Let,
@@ -164,3 +166,43 @@ def test_if_equality_survives_nested_state_refs():
 def test_state_ref_inequality_raises_rather_than_lying():
     with pytest.raises(TypeError):
         StateRef("clicks") != StateRef("other")  # pyright: ignore[reportUnusedExpression]
+
+
+def test_add_builds_an_action():
+    action = StateRef("clicks").add(1)
+    assert isinstance(action, Action)
+
+
+def test_on_click_builds_event():
+    action = StateRef("clicks").add(1)
+    built = Elem("button").on_click(action)
+    assert built.events == (Event("click", (action,)),)
+
+
+def test_on_click_accepts_multiple_actions():
+    a1, a2 = StateRef("clicks").add(1), StateRef("other").add(2)
+    built = Elem("button").on_click(a1, a2)
+    assert built.events == (Event("click", (a1, a2)),)
+
+
+def test_on_click_rejects_invalid_actions():
+    with pytest.raises(TypeError):
+        Elem("button").on_click(42)  # pyright: ignore[reportArgumentType]
+
+
+def test_add_action_is_hashable():
+    hash(StateRef("clicks").add(1))  # must not raise
+
+
+def test_add_action_equality_survives_state_ref():
+    # Regression: AddAction's default eq would recurse into StateRef.__eq__,
+    # which returns a Condition rather than a bool, poisoning equality for
+    # AddAction itself and, transitively, for anything containing one
+    # (Event, and any Elem tree with an on_click action anywhere inside).
+    a1 = StateRef("clicks").add(1)
+    a2 = StateRef("clicks").add(1)
+    assert a1 == a2
+
+    tree1 = Elem("button").on_click(a1)
+    tree2 = Elem("button").on_click(a2)
+    assert tree1 == tree2

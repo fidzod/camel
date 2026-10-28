@@ -1,8 +1,7 @@
 # Camel DSL
 
 Reference for the Python DSL (`camel.dsl` + `camel.prelude`) used to build
-the tree that `camel.ir.to_ir` compiles. Covers what's implemented so far -
-actions and events will be documented separately once they exist.
+the tree that `camel.ir.to_ir` compiles. Covers what's implemented so far.
 
 ## Shape
 
@@ -68,3 +67,22 @@ replaces that default.
 A `Condition`, and the result of `if_(...)` before `.then()`, are not
 `Node`s and can't be used as a child, for the same reason `let(...)` alone
 can't.
+
+## Events
+
+```python
+(button > "Click Me!").on_click(state.clicks.add(1))
+```
+
+`.on_click(*actions)` attaches one or more actions to an `Elem`, run in
+order when it's clicked. Each argument must be an `Action`; anything else
+raises `TypeError`.
+
+## Actions
+
+`state.<name>.add(amount)` builds an action that adds `amount` to the named
+value - running it is the runtime's job, not Python's. `amount` can be a
+literal or another `state.<name>` reference.
+
+An `Action` is not a `Node` and can't be used as a child - it only ever
+appears inside `.on_click(...)`.

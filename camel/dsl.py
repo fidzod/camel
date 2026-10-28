@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["Node", "Elem", "Fragment", "Let", "StateRefProxy"]
+__all__ = ["Node", "Elem", "Fragment", "Let", "StateRefProxy", "Action"]
 
 from collections.abc import Iterable, Iterator
 import dataclasses
@@ -17,6 +17,9 @@ def _is_child(x: Any) -> bool:
 def _require_child(x: Any) -> None:
     if not _is_child(x):
         raise TypeError(f"{x!r} is not a valid child: expected a Node or str")
+
+
+type Value = int | str | StateRef
 
 
 def _flatten(items: Iterable[Child]) -> Iterator[Child]:
@@ -39,11 +42,40 @@ class Node:
         raise TypeError("Nodes have no truth value; parenthesise `>` chains")
 
 
+class Action:
+    pass
+
+
+def _require_action(x: Any) -> None:
+    if not isinstance(x, Action):
+        raise TypeError(f"{x!r} is not a valid action: expected an Action")
+
+
+@dataclass(frozen=True)
+class AddAction(Action):
+    target: StateRef
+    amount: Value
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, AddAction):
+            return NotImplemented
+        return _value_equal(self.target, other.target) and _value_equal(
+            self.amount, other.amount
+        )
+
+
+@dataclass(frozen=True)
+class Event:
+    name: str
+    actions: tuple[Action, ...] = ()
+
+
 @dataclass(frozen=True)
 class Elem(Node):
     tag: str
     children: tuple[Child, ...] = ()
     classes: tuple[str, ...] = ()
+    events: tuple[Event, ...] = ()
 
     def __gt__(self, child: Child):
         return dataclasses.replace(
@@ -55,6 +87,14 @@ class Elem(Node):
             raise AttributeError(name) from None
         return dataclasses.replace(self, classes=self.classes + (name,))
 
+    def on_click(self, *actions: Action):
+        for action in actions:
+            _require_action(action)
+
+        return dataclasses.replace(
+            self, events=self.events + (Event("click", actions),)
+        )
+
 
 @dataclass(frozen=True)
 class Fragment(Node):
@@ -63,6 +103,11 @@ class Fragment(Node):
 
 def _fragment(*items) -> Fragment:
     return Fragment(tuple(_flatten(items)))
+
+
+@dataclass(frozen=True)
+class Empty(Node):
+    pass
 
 
 type Bindings = tuple[tuple[str, int | str], ...]
@@ -87,10 +132,15 @@ class Let:
 class StateRef(Node):
     name: str
 
-    def __eq__(self, value: Value) -> Condition: # pyright: ignore[reportIncompatibleMethodOverride]
+    def __eq__(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, value: Value
+    ) -> Condition:
         # Deliberately violate __eq__'s contract: state.x == y builds a
         # reactive Condition, not a bool.
         return Condition("Eq", self, value)
+
+    def add(self, value: Value) -> AddAction:
+        return AddAction(self, value)
 
 
 class StateRefProxy:
@@ -98,14 +148,6 @@ class StateRefProxy:
         if name.startswith("_"):
             raise AttributeError(name) from None
         return StateRef(name)
-
-
-@dataclass(frozen=True)
-class Empty(Node):
-    pass
-
-
-type Value = int | str | StateRef
 
 
 def _value_equal(a: Value, b: Value) -> bool:
@@ -129,10 +171,10 @@ class Condition:
         if not isinstance(other, Condition):
             return NotImplemented
         return (
-                self.op == other.op
-                and _value_equal(self.left, other.left)
-                and _value_equal(self.right, other.right)
-            )
+            self.op == other.op
+            and _value_equal(self.left, other.left)
+            and _value_equal(self.right, other.right)
+        )
 
     def __bool__(self):
         raise TypeError("Conditions have no truth value; use .then()/.otherwise()")

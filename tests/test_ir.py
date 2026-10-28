@@ -19,6 +19,7 @@ def test_elem():
         "tag": "div",
         "classes": ("card",),
         "children": ({"type": "Text", "contents": "hi"},),
+        "events": (),
     }
 
 
@@ -27,8 +28,8 @@ def test_fragment():
     assert to_ir(fragment) == {
         "type": "Fragment",
         "children": (
-            {"type": "Elem", "tag": "p", "classes": (), "children": ()},
-            {"type": "Elem", "tag": "span", "classes": (), "children": ()},
+            {"type": "Elem", "tag": "p", "classes": (), "children": (), "events": ()},
+            {"type": "Elem", "tag": "span", "classes": (), "children": (), "events": ()},
         ),
     }
 
@@ -52,6 +53,7 @@ def test_state():
             "tag": "h3",
             "classes": (),
             "children": ({"type": "StateRef", "name": "clicks"},),
+            "events": (),
         },
     }
 
@@ -80,6 +82,38 @@ def test_if_otherwise_defaults_to_empty():
     ir = to_ir(built)
     assert ir["type"] == "If"
     assert ir["otherwise"] == {"type": "Empty"}
+
+
+def test_on_click_add_action():
+    elem = Elem("button").on_click(StateRef("clicks").add(1))
+    assert to_ir(elem) == {
+        "type": "Elem",
+        "tag": "button",
+        "classes": (),
+        "children": (),
+        "events": (
+            {
+                "name": "click",
+                "actions": (
+                    {
+                        "type": "Action",
+                        "name": "Add",
+                        "target": {"type": "StateRef", "name": "clicks"},
+                        "amount": {"type": "Literal", "value": 1},
+                    },
+                ),
+            },
+        ),
+    }
+
+
+def test_add_action_amount_may_be_a_state_ref():
+    elem = Elem("button").on_click(StateRef("clicks").add(StateRef("step")))
+    ir = to_ir(elem)
+    assert ir["type"] == "Elem"
+    (event,) = ir["events"]
+    (action,) = event["actions"]
+    assert action["amount"] == {"type": "StateRef", "name": "step"}
 
 
 def test_realistic_tree_compiles_flat():

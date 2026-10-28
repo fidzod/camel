@@ -4,7 +4,7 @@ __all__ = ["to_ir"]
 
 from functools import singledispatch
 from typing import Literal, TypedDict, cast
-from camel.dsl import Condition, Elem, Empty, Fragment, If, State, StateRef, Value
+from camel.dsl import Action, AddAction, Condition, Elem, Empty, Event, Fragment, If, State, StateRef, Value
 
 # See docs/ir.md
 type IRNode = ElemIR | FragmentIR | TextIR | StateIR | StateRefIR | EmptyIR | IfIR
@@ -17,6 +17,7 @@ class ElemIR(TypedDict):
     tag: str
     classes: tuple[str, ...]
     children: tuple[IRNode, ...]
+    events: tuple[EventIR, ...]
 
 
 class FragmentIR(TypedDict):
@@ -63,6 +64,21 @@ class LiteralIR(TypedDict):
     value: int | str
 
 
+class EventIR(TypedDict):
+    name: str
+    actions: tuple[ActionIR, ...]
+
+
+type ActionIR = AddActionIR  # | ...
+
+
+class AddActionIR(TypedDict):
+    type: Literal["Action"]
+    name: str
+    target: StateRefIR
+    amount: ValueIR
+
+
 @singledispatch
 def to_ir(node) -> IRNode:
     raise TypeError(f"don't know how to compile {type(node)!r}")
@@ -75,6 +91,7 @@ def _(elem: Elem) -> ElemIR:
         "tag": elem.tag,
         "classes": elem.classes,
         "children": tuple(map(to_ir, elem.children)),
+        "events": tuple(map(_event_to_ir, elem.events))
     }
 
 
@@ -110,10 +127,14 @@ def _(state_ref: StateRef) -> StateRefIR:
     return {"type": "StateRef", "name": state_ref.name}
 
 
-def _value_to_ir(value: Value) -> LiteralIR | StateRefIR:
-    if isinstance(value, StateRef):
-        return cast(StateRefIR, to_ir(value))
-    return {"type": "Literal", "value": value}
+@to_ir.register
+def _(if_: If) -> IfIR:
+    return {
+        "type": "If",
+        "condition": _condition_to_ir(if_.condition),
+        "then": to_ir(if_.then),
+        "otherwise": to_ir(if_.otherwise_),
+    }
 
 
 def _condition_to_ir(condition: Condition) -> ConditionIR:
@@ -121,15 +142,33 @@ def _condition_to_ir(condition: Condition) -> ConditionIR:
         "type": "Condition",
         "op": condition.op,
         "left": _value_to_ir(condition.left),
-        "right": _value_to_ir(condition.right)
+        "right": _value_to_ir(condition.right),
     }
 
 
-@to_ir.register
-def _(if_: If) -> IfIR:
+def _value_to_ir(value: Value) -> LiteralIR | StateRefIR:
+    if isinstance(value, StateRef):
+        return cast(StateRefIR, to_ir(value))
+    return {"type": "Literal", "value": value}
+
+
+def _event_to_ir(event: Event) -> EventIR:
     return {
-        "type": "If",
-        "condition": _condition_to_ir(if_.condition),
-        "then": to_ir(if_.then),
-        "otherwise": to_ir(if_.otherwise_)
+        "name": event.name,
+        "actions": tuple(map(_action_to_ir, event.actions))
+    }
+
+
+@singledispatch
+def _action_to_ir(action: Action) -> ActionIR:
+    raise TypeError(f"don't know how to compile {type(action)!r}")
+
+
+@_action_to_ir.register
+def _(action: AddAction) -> AddActionIR:
+    return {
+        "type": "Action",
+        "name": "Add",
+        "target": cast(StateRefIR, to_ir(action.target)),
+        "amount": _value_to_ir(action.amount),
     }

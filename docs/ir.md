@@ -2,8 +2,7 @@
 
 Reference for the JSON intermediate representation Camel compiles the DSL to.
 This doc just covers what's implemented so far (`Elem`, `Fragment`, `Empty`,
-`Text`, `State`, `StateRef`, `If`, `Condition`, `Literal`) - actions and
-events will be designed separately once they exist.
+`Text`, `State`, `StateRef`, `If`, `Condition`, `Literal`, `Event`, `Action`).
 
 ## Shape
 
@@ -17,18 +16,32 @@ where there is no enclosing array to splice into (currently just the root of a
 compiled tree).
 
 Some node kinds are a closed family of variants playing one shared role
-rather than a distinct kind of node in their own right - currently just
-`Condition` (its `op` field distinguishes `Eq` from future comparison
-kinds). These use a nested discriminator (`op`) alongside the outer `type`,
-instead of a flat `type` per variant, because the variants have no
-independent existence outside that role.
+rather than a distinct kind of node in their own right. There are two ways
+this shows up, depending on whether the variants actually share a shape:
+
+`Condition` is a nested discriminator on one shape: every comparison
+operator takes a `left`/`right` pair, so `op` is the only thing that varies
+between `Eq` and future comparisons like `Gt`/`Lt` - one `type`, one set of
+fields, a second field (`op`) picks the variant.
+
+`Action` is a union of independently-shaped variants, the same way `IRNode`
+itself is a union of unrelated node shapes: `Add` needs a `target`/`amount`,
+but a future `Set`/`Push`/etc. will need entirely different fields, so
+there's no single shape to attach a discriminator to. Each variant gets its
+own full `TypedDict` (`type: "Action"`, its own `name`, its own fields),
+joined into one `ActionIR` union as they're added.
+
+Use the first form only when every current *and clearly foreseeable*
+variant genuinely shares the same fields - if that stops being true (e.g.
+`Condition` grows a variant combining two conditions rather than two
+values), it should be split the same way `Action` is.
 
 ## Node types
 
 ### Elem
 
 ```json
-{"type": "Elem", "tag": "div", "classes": ["card", "featured"], "children": [...]}
+{"type": "Elem", "tag": "div", "classes": ["card", "featured"], "children": [...], "events": [...]}
 ```
 
 | field    | type     |
@@ -36,6 +49,7 @@ independent existence outside that role.
 | tag      | string   |
 | classes  | string[] |
 | children | Node[]   |
+| events   | Event[]  |
 
 ### Fragment
 
@@ -133,3 +147,38 @@ it only describes what can appear in these two fields.
 | field | type          |
 |-------|---------------|
 | value | int \| string |
+
+### Event
+
+```json
+{"name": "click", "actions": [{...}]}
+```
+
+| field   | type     |
+|---------|----------|
+| name    | string   |
+| actions | Action[] |
+
+No `type` field - every event has this exact shape, there's no variant to
+distinguish, so there's nothing for a discriminator to do. Only ever
+appears inside an `Elem`'s `events`, never as a tree child. `name` is a DOM
+event name; `"click"` today.
+
+### Action
+
+```json
+{"type": "Action", "name": "Add", "target": {...}, "amount": {...}}
+```
+
+Currently one variant, `Add`:
+
+| field  | type     |
+|--------|----------|
+| name   | "Add"    |
+| target | StateRef |
+| amount | Value    |
+
+Adds `amount` to the value `target` refers to. `target` is always a
+`StateRef` - there's no sensible reading of "add to a literal." `amount` is
+a `Value` (a `Literal` or a `StateRef`), same as a `Condition`'s operands.
+Only ever appears inside an `Event`'s `actions`, never as a tree child.
