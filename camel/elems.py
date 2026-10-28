@@ -15,7 +15,7 @@ __all__ = [
     "button",
     "input_",
     "pre",
-    "code"
+    "code",
 ]
 
 from camel.dsl import Elem

@@ -5,8 +5,10 @@ from functools import singledispatch
 from camel.dsl import Elem, Container
 
 
+## TODO replace return type with TypedDict
+## Depends on settling IR
 @singledispatch
-def to_ir(node):
+def to_ir(node) -> dict:
     raise TypeError(f"don't know how to compile {type(node)!r}")
 
 
@@ -20,7 +22,7 @@ def _(node: Elem):
     return {
         "type": "Elem",
         "tag": node.tag,
-        "class_list": node.class_list,
+        "classes": node.classes,
         "children": list(map(to_ir, node.children)),
     }
 
