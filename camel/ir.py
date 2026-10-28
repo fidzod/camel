@@ -1,32 +1,55 @@
+from __future__ import annotations
+
 __all__ = ["to_ir"]
 
 from functools import singledispatch
+from typing import Literal, TypedDict
+from camel.dsl import Elem, Fragment
 
-from camel.dsl import Elem, Container
+# See docs/ir.md
+type IRNode = ElemIR | FragmentIR | TextIR
 
 
-## TODO replace return type with TypedDict
-## Depends on settling IR
+class ElemIR(TypedDict):
+    type: Literal["Elem"]
+    tag: str
+    classes: tuple[str, ...]
+    children: tuple[IRNode, ...]
+
+
+class FragmentIR(TypedDict):
+    type: Literal["Fragment"]
+    children: tuple[IRNode, ...]
+
+
+class TextIR(TypedDict):
+    type: Literal["Text"]
+    contents: str
+
+
 @singledispatch
-def to_ir(node) -> dict:
+def to_ir(node) -> IRNode:
     raise TypeError(f"don't know how to compile {type(node)!r}")
 
 
 @to_ir.register
-def _(node: str):
+def _(node: str) -> TextIR:
     return {"type": "Text", "contents": node}
 
 
 @to_ir.register
-def _(node: Elem):
+def _(elem: Elem) -> ElemIR:
     return {
         "type": "Elem",
-        "tag": node.tag,
-        "classes": node.classes,
-        "children": list(map(to_ir, node.children)),
+        "tag": elem.tag,
+        "classes": elem.classes,
+        "children": tuple(map(to_ir, elem.children)),
     }
 
 
 @to_ir.register
-def _(node: Container):
-    return {"type": "Container", "children": list(map(to_ir, node.children))}
+def _(fragment: Fragment) -> FragmentIR:
+    return {
+        "type": "Fragment",
+        "children": tuple(map(to_ir, fragment.children)),
+    }
