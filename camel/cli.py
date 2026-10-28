@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -33,6 +34,10 @@ def build(app: str):
 
     if result.stdout:
         print(result.stdout)
+
+    static = Path.cwd() / "static"
+    if static.exists():
+        shutil.copytree(static, build_dir, dirs_exist_ok=True)
 
     print("🐪✨ Build successful!")
 

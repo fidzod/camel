@@ -9,4 +9,4 @@ clicker = let(clicks=0).in_(
     + (button > "Click Me!").on_click(state.clicks.add(1))
 )
 
-print(to_ir(clicker))
+generate(clicker)

@@ -19,9 +19,11 @@ __all__ = [
     "let",
     "state",
     "if_",
+    "generate",
 ]
 
 from camel.dsl import Condition, Elem, Let, PartialIf, StateRefProxy
+from camel.site import generate
 
 # HTML Tags
 h1 = Elem("h1")

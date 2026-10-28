@@ -14,4 +14,4 @@ site = (
     )
 )
 
-print(to_ir(site))
+generate(site)
