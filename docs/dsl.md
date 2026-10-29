@@ -88,3 +88,20 @@ reference.
 
 An `Action` is not a `Node` and can't be used as a child - it only ever
 appears inside `.on_click(...)`.
+
+## Lists
+
+```python
+state.tasks.each(lambda item: li > item)
+```
+
+`state.<name>.each(fn)` builds a `ForEach`: renders `fn`'s body once per
+item in the named list, in order. `fn` must take exactly one argument -
+its parameter name becomes the name the current item resolves under
+inside the body, so `lambda item: ...` and `lambda task: ...` behave
+identically, just naming the loop variable differently.
+
+Inside `fn`'s body, the loop parameter (`item` above) resolves to the
+current element - the loop equivalent of `state.<name>`, but scoped to
+the nearest enclosing `.each(...)` rather than the nearest enclosing
+`let(...)`.
