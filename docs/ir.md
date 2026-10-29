@@ -181,9 +181,10 @@ event name; `"click"` today.
 ```json
 {"type": "Action", "name": "Add", "target": {...}, "amount": {...}}
 {"type": "Action", "name": "Append", "target": {...}, "value": {...}}
+{"type": "Action", "name": "Restore", "target": {...}}
 ```
 
-Two variants so far.
+Three variants so far.
 
 `Add`:
 
@@ -205,10 +206,23 @@ Adds `amount` to the value `target` refers to.
 
 Appends `value` to the end of the list `target` refers to.
 
-Both: `target` is always a `StateRef` - there's no sensible reading of
-"add to"/"append to" a literal. `amount`/`value` is a `Value` (a `Literal`
-or a `StateRef`), same as a `Condition`'s operands. Only ever appears
-inside an `Event`'s `actions`, never as a tree child.
+`Restore`:
+
+| field  | type      |
+|--------|-----------|
+| name   | "Restore" |
+| target | StateRef  |
+
+Resets the value `target` refers to back to whatever it was seeded to
+in the nearest enclosing `let(...)`. No operand - unlike `Add`/`Append`
+there's nothing to supply, the value to restore to is already on
+record.
+
+All three: `target` is always a `StateRef` - there's no sensible reading
+of "add to"/"append to"/"restore" a literal. `amount`/`value` (where
+present) is a `Value` (a `Literal` or a `StateRef`), same as a
+`Condition`'s operands. Only ever appears inside an `Event`'s `actions`,
+never as a tree child.
 
 ### ForEach
 

@@ -16,6 +16,7 @@ from camel.dsl import (
     ForEach,
     Fragment,
     If,
+    RestoreAction,
     State,
     StateRef,
     Value,
@@ -96,7 +97,7 @@ class EventIR(TypedDict):
     actions: tuple[ActionIR, ...]
 
 
-type ActionIR = AddActionIR | AppendActionIR
+type ActionIR = AddActionIR | AppendActionIR | RestoreActionIR
 
 
 class AddActionIR(TypedDict):
@@ -111,6 +112,12 @@ class AppendActionIR(TypedDict):
     name: Literal["Append"]
     target: StateRefIR
     value: ValueIR
+
+
+class RestoreActionIR(TypedDict):
+    type: Literal["Action"]
+    name: Literal["Restore"]
+    target: StateRefIR
 
 
 class ForEachIR(TypedDict):
@@ -243,4 +250,12 @@ def _(action: AppendAction) -> AppendActionIR:
         "name": "Append",
         "target": cast(StateRefIR, to_ir(action.target)),
         "value": _value_to_ir(action.value),
+    }
+
+@_action_to_ir.register
+def _(action: RestoreAction) -> RestoreActionIR:
+    return {
+        "type": "Action",
+        "name": "Restore",
+        "target": cast(StateRefIR, to_ir(action.target)),
     }

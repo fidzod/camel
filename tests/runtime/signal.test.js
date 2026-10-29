@@ -42,3 +42,19 @@ test("multiple subscribers all get notified", () => {
   assert.deepStrictEqual(a, [9]);
   assert.deepStrictEqual(b, [9]);
 });
+
+test("restore resets the value back to what the signal was created with", () => {
+  const s = signal("seed");
+  s.set("changed");
+  s.restore();
+  assert.strictEqual(s.get(), "seed");
+});
+
+test("restore notifies subscribers with the initial value", () => {
+  const s = signal(0);
+  const seen = [];
+  s.subscribe(value => seen.push(value));
+  s.set(1);
+  s.restore();
+  assert.deepStrictEqual(seen, [1, 0]);
+});

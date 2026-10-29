@@ -208,6 +208,26 @@ def test_add_action_equality_survives_state_ref():
     assert tree1 == tree2
 
 
+def test_restore_builds_an_action():
+    action = StateRef("new").restore()
+    assert isinstance(action, Action)
+
+
+def test_restore_action_is_hashable():
+    hash(StateRef("new").restore())  # must not raise
+
+
+def test_restore_action_equality_survives_state_ref():
+    # Same StateRef-poisoning hazard as AddAction/AppendAction, see above.
+    a1 = StateRef("new").restore()
+    a2 = StateRef("new").restore()
+    assert a1 == a2
+
+    tree1 = Elem("button").on_click(a1)
+    tree2 = Elem("button").on_click(a2)
+    assert tree1 == tree2
+
+
 def test_elem_bind_defaults_to_empty():
     assert Elem("input").bind_ == Empty()
 

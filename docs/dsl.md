@@ -95,9 +95,11 @@ raises `TypeError`.
 
 `state.<name>.add(amount)` builds an action that adds `amount` to the named
 value; `state.<name>.append(value)` builds an action that appends `value`
-to the end of the named list - running either is the runtime's job, not
-Python's. `amount`/`value` can be a literal or another `state.<name>`
-reference.
+to the end of the named list; `state.<name>.restore()` builds an action
+that resets the named value back to whatever it was seeded to in the
+nearest enclosing `let(...)` - running any of these is the runtime's job,
+not Python's. `amount`/`value` can be a literal or another `state.<name>`
+reference; `restore()` takes no argument.
 
 An `Action` is not a `Node` and can't be used as a child - it only ever
 appears inside `.on_click(...)`.

@@ -3,10 +3,12 @@
 const signal = (initial) => {
   let value = initial;
   const subscribers = new Set();
+  const set = (next) => { value = next; subscribers.forEach(fn => fn(next)); };
   return {
     get: () => value,
-    set(next) { value = next; subscribers.forEach(fn => fn(next)); },
+    set,
     subscribe(fn) { subscribers.add(fn); },
+    restore: () => set(initial),
   }
 }
 
@@ -26,6 +28,11 @@ const runAction = (action, env) => {
     case "Append": {
       const target = resolveStateRef(action.target, env);
       target.set([...target.get(), evalValue(action.value, env)]);
+      return;
+    }
+    case "Restore": {
+      const target = resolveStateRef(action.target, env);
+      target.restore();
       return;
     }
     default:

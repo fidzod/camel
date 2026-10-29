@@ -80,6 +80,16 @@ class AppendAction(Action):
 
 
 @dataclass(frozen=True)
+class RestoreAction(Action):
+    target: StateRef
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, RestoreAction):
+            return NotImplemented
+        return _value_equal(self.target, other.target)
+
+
+@dataclass(frozen=True)
 class Event:
     name: str
     actions: tuple[Action, ...] = ()
@@ -167,6 +177,9 @@ class StateRef(Node):
 
     def append(self, value: Value) -> AppendAction:
         return AppendAction(self, value)
+
+    def restore(self) -> RestoreAction:
+        return RestoreAction(self)
 
     def each(self, fn: Callable[[VarRef], Child]) -> ForEach:
         params = list(inspect.signature(fn).parameters)

@@ -48,6 +48,29 @@ test("Append against an undeclared target raises", () => {
   );
 });
 
+test("Restore resets the target to its initial value", () => {
+  const clicks = signal(5);
+  clicks.set(100);
+  runAction({ type: "Action", name: "Restore", target: ref("clicks") }, { clicks });
+  assert.strictEqual(clicks.get(), 5);
+});
+
+test("Restore notifies subscribers", () => {
+  const value = signal("hi");
+  const seen = [];
+  value.subscribe(v => seen.push(v));
+  value.set("bye");
+  runAction({ type: "Action", name: "Restore", target: ref("value") }, { value });
+  assert.deepStrictEqual(seen, ["bye", "hi"]);
+});
+
+test("Restore against an undeclared target raises", () => {
+  assert.throws(
+    () => runAction({ type: "Action", name: "Restore", target: ref("nope") }, {}),
+    /no such state reference: "nope"/,
+  );
+});
+
 test("an unknown action name raises", () => {
   assert.throws(
     () => runAction({ type: "Action", name: "Mystery" }, {}),

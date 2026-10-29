@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 
 from camel.dsl import Elem, Empty, Let, PartialIf, StateRef
-from camel.ir import ElemIR, TextIR, to_ir
+from camel.ir import AddActionIR, AppendActionIR, ElemIR, TextIR, to_ir
 
 
 def test_text():
@@ -121,7 +121,7 @@ def test_add_action_amount_may_be_a_state_ref():
     ir = to_ir(elem)
     assert ir["type"] == "Elem"
     (event,) = ir["events"]
-    (action,) = event["actions"]
+    (action,) = (cast(AddActionIR, a) for a in event["actions"])
     assert action["amount"] == {"type": "StateRef", "name": "step"}
 
 
@@ -154,8 +154,31 @@ def test_append_action_value_may_be_a_state_ref():
     ir = to_ir(elem)
     assert ir["type"] == "Elem"
     (event,) = ir["events"]
-    (action,) = event["actions"]
+    (action,) = (cast(AppendActionIR, a) for a in event["actions"])
     assert action["value"] == {"type": "StateRef", "name": "new"}
+
+
+def test_on_click_restore_action():
+    elem = Elem("button").on_click(StateRef("new").restore())
+    assert to_ir(elem) == {
+        "type": "Elem",
+        "tag": "button",
+        "classes": (),
+        "children": (),
+        "events": (
+            {
+                "name": "click",
+                "actions": (
+                    {
+                        "type": "Action",
+                        "name": "Restore",
+                        "target": {"type": "StateRef", "name": "new"},
+                    },
+                ),
+            },
+        ),
+        "bind": {"type": "Empty"},
+    }
 
 
 def test_bind_defaults_to_empty():
