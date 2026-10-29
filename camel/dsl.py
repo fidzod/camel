@@ -86,32 +86,6 @@ class Event:
 
 
 @dataclass(frozen=True)
-class Elem(Node):
-    tag: str
-    children: tuple[Child, ...] = ()
-    classes: tuple[str, ...] = ()
-    events: tuple[Event, ...] = ()
-
-    def __gt__(self, child: Child):
-        return dataclasses.replace(
-            self, children=tuple(_flatten(self.children + (child,)))
-        )
-
-    def __getattr__(self, name: str):
-        if name.startswith("_"):
-            raise AttributeError(name) from None
-        return dataclasses.replace(self, classes=self.classes + (name,))
-
-    def on_click(self, *actions: Action):
-        for action in actions:
-            _require_action(action)
-
-        return dataclasses.replace(
-            self, events=self.events + (Event("click", actions),)
-        )
-
-
-@dataclass(frozen=True)
 class Fragment(Node):
     children: tuple[Child, ...]
 
@@ -123,6 +97,39 @@ def _fragment(*items) -> Fragment:
 @dataclass(frozen=True)
 class Empty(Node):
     pass
+
+
+@dataclass(frozen=True)
+class Elem(Node):
+    tag: str
+    children: tuple[Child, ...] = ()
+    classes: tuple[str, ...] = ()
+    events: tuple[Event, ...] = ()
+    bind_: StateRef | Empty = Empty()
+
+    def __gt__(self, child: Child):
+        return dataclasses.replace(
+            self, children=tuple(_flatten(self.children + (child,)))
+        )
+
+    def __getattr__(self, name: str):
+        if name.startswith("_"):
+            raise AttributeError(name) from None
+        return dataclasses.replace(self, classes=self.classes + (name,))
+
+    def bind(self, state: StateRef):
+        if self.tag != "input":
+            raise TypeError(f"Cannot bind to \"{self.tag}\" element: expected \"input\"")
+        return dataclasses.replace(self, bind_=state)
+        
+
+    def on_click(self, *actions: Action):
+        for action in actions:
+            _require_action(action)
+
+        return dataclasses.replace(
+            self, events=self.events + (Event("click", actions),)
+        )
 
 
 type BindingValue = int | str | tuple[int | str, ...]

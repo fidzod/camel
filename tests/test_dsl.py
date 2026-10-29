@@ -208,6 +208,21 @@ def test_add_action_equality_survives_state_ref():
     assert tree1 == tree2
 
 
+def test_elem_bind_defaults_to_empty():
+    assert Elem("input").bind_ == Empty()
+
+
+def test_bind_attaches_the_state_ref():
+    elem = Elem("input").bind(StateRef("new"))
+    assert isinstance(elem.bind_, StateRef)
+    assert elem.bind_.name == "new"
+
+
+def test_bind_rejects_a_non_input_element():
+    with pytest.raises(TypeError):
+        Elem("p").bind(StateRef("new"))
+
+
 def test_append_builds_an_action():
     action = StateRef("tasks").append("milk")
     assert isinstance(action, Action)

@@ -42,15 +42,26 @@ values), it should be split the same way `Action` is.
 ### Elem
 
 ```json
-{"type": "Elem", "tag": "div", "classes": ["card", "featured"], "children": [...], "events": [...]}
+{"type": "Elem", "tag": "div", "classes": ["card", "featured"], "children": [...], "events": [...], "bind": {"type": "Empty"}}
 ```
 
-| field    | type     |
-|----------|----------|
-| tag      | string   |
-| classes  | string[] |
-| children | Node[]   |
-| events   | Event[]  |
+| field    | type              |
+|----------|-------------------|
+| tag      | string            |
+| classes  | string[]          |
+| children | Node[]            |
+| events   | Event[]           |
+| bind     | StateRef \| Empty |
+
+`bind` is `Empty` on every `Elem` except an `input_` with `.bind(...)`
+attached - same "nothing here" value `If.otherwise` defaults to, rather
+than introducing `null` as a second way to say that. Unlike `events`, it
+isn't routed through the `Action` system: it's a standing two-way link,
+not a one-shot response to a DOM event - the runtime keeps the
+element's value and the `StateRef` it names in sync in both directions
+(state changes update the element; the user typing updates the state).
+`bind` is always a `StateRef` - there's no sensible reading of "bind to
+a literal," since binding reads *and* writes.
 
 ### Fragment
 

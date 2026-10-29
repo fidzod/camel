@@ -70,6 +70,7 @@ test("clicking an Elem with on_click runs its actions", () => {
           actions: [{ type: "Action", name: "Add", target: ref("clicks"), amount: literal(1) }],
         },
       ],
+      bind: { type: "Empty" },
     },
     { clicks },
   );
@@ -97,6 +98,7 @@ test("multiple actions on one event all run, in order", () => {
       classes: [],
       children: [],
       events: [{ name: "click", actions: [trackingAction("first"), trackingAction("second")] }],
+      bind: { type: "Empty" },
     },
     { clicks },
   );

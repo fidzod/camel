@@ -51,6 +51,19 @@ anywhere a `Node` is.
 `let(...)` alone, before `.in_()`, is not a `Node` and can't be used as a
 child - there's no sensible way to render bindings without a subtree yet.
 
+## Binding
+
+```python
+input_.bind(state.new)
+```
+
+`.bind(state_ref)` keeps an `input_` element's value synced with a named
+state value, in both directions: typing into the element writes to
+`state_ref`, and anything else that changes `state_ref` (an action,
+another binding) updates the element. Only `input_` supports it -
+`.bind(...)` on any other element raises `TypeError` immediately, at
+construction, the same way `.on_click(42)` does.
+
 ## Conditionals
 
 ```python

@@ -38,12 +38,26 @@ const renderChildren = (children, env, vars) => children.map(child => render(chi
 const renderElement = (node, env, vars) => {
   const element = document.createElement(node.tag);
   element.append(...renderChildren(node.children, env, vars));
+
   if (node.classes.length) element.className = node.classes.join(" ");
+
   node.events.forEach(event => {
     element.addEventListener(event.name, () => {
       event.actions.forEach(action => runAction(action, env));
     });
   });
+
+  if (node.bind.type === "StateRef") {
+    const stateRef = resolveStateRef(node.bind, env);
+    element.value = stateRef.get();
+    element.addEventListener("input", () => {
+      stateRef.set(element.value);
+    });
+    stateRef.subscribe(next => {
+      element.value = next;
+    });
+  }
+
   return element;
 }
 

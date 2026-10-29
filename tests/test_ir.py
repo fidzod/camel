@@ -20,6 +20,7 @@ def test_elem():
         "classes": ("card",),
         "children": ({"type": "Text", "contents": "hi"},),
         "events": (),
+        "bind": {"type": "Empty"},
     }
 
 
@@ -28,8 +29,14 @@ def test_fragment():
     assert to_ir(fragment) == {
         "type": "Fragment",
         "children": (
-            {"type": "Elem", "tag": "p", "classes": (), "children": (), "events": ()},
-            {"type": "Elem", "tag": "span", "classes": (), "children": (), "events": ()},
+            {
+                "type": "Elem", "tag": "p", "classes": (), "children": (),
+                "events": (), "bind": {"type": "Empty"},
+            },
+            {
+                "type": "Elem", "tag": "span", "classes": (), "children": (),
+                "events": (), "bind": {"type": "Empty"},
+            },
         ),
     }
 
@@ -54,6 +61,7 @@ def test_state():
             "classes": (),
             "children": ({"type": "StateRef", "name": "clicks"},),
             "events": (),
+            "bind": {"type": "Empty"},
         },
     }
 
@@ -104,6 +112,7 @@ def test_on_click_add_action():
                 ),
             },
         ),
+        "bind": {"type": "Empty"},
     }
 
 
@@ -136,6 +145,7 @@ def test_on_click_append_action():
                 ),
             },
         ),
+        "bind": {"type": "Empty"},
     }
 
 
@@ -146,6 +156,20 @@ def test_append_action_value_may_be_a_state_ref():
     (event,) = ir["events"]
     (action,) = event["actions"]
     assert action["value"] == {"type": "StateRef", "name": "new"}
+
+
+def test_bind_defaults_to_empty():
+    elem = Elem("input")
+    ir = to_ir(elem)
+    assert ir["type"] == "Elem"
+    assert ir["bind"] == {"type": "Empty"}
+
+
+def test_bind_compiles_to_its_state_ref():
+    elem = Elem("input").bind(StateRef("new"))
+    ir = to_ir(elem)
+    assert ir["type"] == "Elem"
+    assert ir["bind"] == {"type": "StateRef", "name": "new"}
 
 
 def test_realistic_tree_compiles_flat():
