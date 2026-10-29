@@ -28,11 +28,11 @@ const runAction = (action, env) => {
   }
 };
 
-const renderChildren = (children, env) => children.map(child => render(child, env));
+const renderChildren = (children, env, vars) => children.map(child => render(child, env, vars));
 
-const renderElement = (node, env) => {
+const renderElement = (node, env, vars) => {
   const element = document.createElement(node.tag);
-  element.append(...renderChildren(node.children, env));
+  element.append(...renderChildren(node.children, env, vars));
   if (node.classes.length) element.className = node.classes.join(" ");
   node.events.forEach(event => {
     element.addEventListener(event.name, () => {
@@ -42,9 +42,9 @@ const renderElement = (node, env) => {
   return element;
 }
 
-const renderFragment = (node, env) => {
+const renderFragment = (node, env, vars) => {
   const fragment = document.createDocumentFragment();
-  fragment.append(...renderChildren(node.children, env));
+  fragment.append(...renderChildren(node.children, env, vars));
   return fragment;
 }
 
@@ -52,17 +52,17 @@ const renderText = (node, _env) => {
   return document.createTextNode(node.contents);
 }
 
-const renderState = (node, env) => {
+const renderState = (node, env, vars) => {
   const childEnv = {
     ...env, ...Object.fromEntries(
       Object.entries(node.initial).map(([name, value]) => [name, signal(value)])
     )
   };
-  return render(node.child, childEnv);
+  return render(node.child, childEnv, vars);
 }
 
-const renderStateRef = (node, env) => {
-  const sig = resolveStateRef(node, env);
+const renderStateRef = (node, env, vars) => {
+  const sig = resolveStateRef(node, env, vars);
   const text = document.createTextNode(String(sig.get()));
   sig.subscribe(value => { text.textContent = String(value); });
   return text;
@@ -93,7 +93,7 @@ const conditionDependencies = (condition, env) =>
     .filter(value => value.type === "StateRef")
     .map(value => resolveStateRef(value, env));
 
-const renderIf = (node, env) => {
+const renderIf = (node, env, vars) => {
   const start = document.createComment("if");
   const end = document.createComment("/if");
   const fragment = document.createDocumentFragment();
@@ -104,7 +104,7 @@ const renderIf = (node, env) => {
       start.nextSibling.remove();
     }
     const branch = evalCondition(node.condition, env) ? node.then : node.otherwise;
-    end.before(render(branch, env));
+    end.before(render(branch, env, vars));
   };
 
   update();
@@ -112,20 +112,52 @@ const renderIf = (node, env) => {
   return fragment;
 };
 
-const render = (node, env) => {
+const renderForEach = (node, env, vars) => {
+  const start = document.createComment("each");
+  const end = document.createComment("/each");
+  const fragment = document.createDocumentFragment();
+  fragment.append(start, end);
+
+  const list = resolveStateRef(node.list, env);
+
+  const update = () => {
+    while (start.nextSibling !== end) {
+      start.nextSibling.remove();
+    }
+    list.get().forEach(item => {
+      end.before(render(node.body, env, { ...vars, [node.var]: item }));
+    })
+  }
+
+  update();
+  list.subscribe(update);
+  return fragment;
+}
+
+const renderVarRef = (node, _env, vars) => {
+  const value = vars[node.name];
+  if (!value) throw new Error(`no such var: "${node.name}"`);
+  return document.createTextNode(value);
+}
+
+const render = (node, env, vars) => {
   switch (node.type) {
     case "Elem":
-      return renderElement(node, env);
+      return renderElement(node, env, vars);
     case "Text":
-      return renderText(node, env);
+      return renderText(node, env, vars);
     case "Fragment":
-      return renderFragment(node, env);
+      return renderFragment(node, env, vars);
     case "State":
-      return renderState(node, env);
+      return renderState(node, env, vars);
     case "StateRef":
-      return renderStateRef(node, env);
+      return renderStateRef(node, env, vars);
     case "If":
-      return renderIf(node, env);
+      return renderIf(node, env, vars);
+    case "ForEach":
+      return renderForEach(node, env, vars);
+    case "VarRef":
+      return renderVarRef(node, env, vars);
     default:
       throw new Error(`don't know how to render node "${node.type}"`);
   }
@@ -147,5 +179,5 @@ if (typeof module !== "undefined") {
 
 document.addEventListener("DOMContentLoaded", () => {
   const root = document.getElementById("root");
-  root.append(render(site, {}));
+  root.append(render(site, {}, {}));
 });
