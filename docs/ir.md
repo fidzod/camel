@@ -3,7 +3,7 @@
 Reference for the JSON intermediate representation Camel compiles the DSL to.
 This doc just covers what's implemented so far (`Elem`, `Fragment`, `Empty`,
 `Text`, `State`, `StateRef`, `If`, `Condition`, `Literal`, `Event`, `Action`,
-`ForEach`, `VarRef`).
+`ForEach`, `VarRef`, `StyleScope`).
 
 ## Shape
 
@@ -256,3 +256,20 @@ more than the IR can actually represent.
 Resolves `name` against the current item of the nearest enclosing
 `ForEach` - the loop equivalent of `StateRef`, but resolved against the
 current iteration rather than a lexical `State` scope.
+
+### StyleScope
+
+```json
+{"type": "StyleScope", "id": "238u2oehi", "child": {...}}
+```
+
+| field | type   |
+|-------|--------|
+| id    | string |
+| child | Node   |
+
+Associates every element rendered within `child` with `id`, for CSS to
+target. Scopes accumulate rather than shadow: an element inside two
+nested `StyleScope`s is associated with both ids, not just the
+innermost - unlike `State`/`ForEach`, where a name collision picks the
+innermost binding. `id` is opaque and unique per instance.

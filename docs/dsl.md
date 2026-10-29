@@ -33,6 +33,23 @@ child anywhere - it compiles to `Text`.
 `i`, `div`, `ul`, `li`, `button`, `input_`, `pre`, `code`. (`input_` dodges
 the `input` builtin.)
 
+## Styling
+
+```python
+(ul > state.tasks.each(lambda item: li > item)).style({
+    "li": {"font-weight": "bold"},
+    ".large:hover": {"color": "red"},
+})
+```
+
+`.style(rules)` wraps the node it's called on in a `StyleScope`, scoping
+`rules` to apply only within it - a selector in `rules` never matches
+anything outside the node it was attached to, however the tree it's part
+of is composed elsewhere. `StyleScope`s nest freely and accumulate
+rather than override: a node inside two `.style(...)` calls picks up
+both. `.style(...)` is usable as a child anywhere a `Node` is, same as
+the node it wraps.
+
 ## State
 
 ```python
