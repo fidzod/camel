@@ -2,9 +2,10 @@ from __future__ import annotations
 
 __all__ = ["Node", "Elem", "Fragment", "Let", "StateRefProxy", "Action"]
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 import dataclasses
 from dataclasses import dataclass
+import inspect
 from typing import Any, Literal
 
 type Child = Node | str
@@ -19,6 +20,7 @@ def _require_child(x: Any) -> None:
         raise TypeError(f"{x!r} is not a valid child: expected a Node or str")
 
 
+# Used for Condition and Action operands
 type Value = int | str | StateRef
 
 
@@ -110,7 +112,8 @@ class Empty(Node):
     pass
 
 
-type Bindings = tuple[tuple[str, int | str], ...]
+type BindingValue = int | str | tuple[int | str, ...]
+type Bindings = tuple[tuple[str, BindingValue], ...]
 
 
 @dataclass(frozen=True)
@@ -141,6 +144,17 @@ class StateRef(Node):
 
     def add(self, value: Value) -> AddAction:
         return AddAction(self, value)
+
+    def each(self, fn: Callable[[VarRef], Child]) -> ForEach:
+        params = list(inspect.signature(fn).parameters)
+        if len(params) != 1:
+            raise TypeError(
+                f"expected a single-argument callable, got {len(params)} parameters"
+            )
+        [var] = params
+        body = fn(VarRef(var))
+        _require_child(body)
+        return ForEach(self, var, body)
 
 
 class StateRefProxy:
@@ -198,3 +212,15 @@ class PartialIf:
     def then(self, then: Child) -> If:
         _require_child(then)
         return If(self.condition, then, Empty())
+
+
+@dataclass(frozen=True)
+class ForEach(Node):
+    list: StateRef
+    var: str
+    body: Child
+
+
+@dataclass(frozen=True)
+class VarRef(Node):
+    name: str

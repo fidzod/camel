@@ -4,10 +4,35 @@ __all__ = ["to_ir"]
 
 from functools import singledispatch
 from typing import Literal, TypedDict, cast
-from camel.dsl import Action, AddAction, Condition, Elem, Empty, Event, Fragment, If, State, StateRef, Value
+from camel.dsl import (
+    Action,
+    AddAction,
+    BindingValue,
+    Condition,
+    Elem,
+    Empty,
+    Event,
+    ForEach,
+    Fragment,
+    If,
+    State,
+    StateRef,
+    Value,
+    VarRef,
+)
 
 # See docs/ir.md
-type IRNode = ElemIR | FragmentIR | TextIR | StateIR | StateRefIR | EmptyIR | IfIR
+type IRNode = (
+    ElemIR
+    | FragmentIR
+    | TextIR
+    | StateIR
+    | StateRefIR
+    | EmptyIR
+    | IfIR
+    | ForEachIR
+    | VarRefIR
+)
 
 type ValueIR = LiteralIR | StateRefIR
 
@@ -36,7 +61,7 @@ class TextIR(TypedDict):
 
 class StateIR(TypedDict):
     type: Literal["State"]
-    initial: dict[str, int | str]
+    initial: dict[str, BindingValue]
     child: IRNode
 
 
@@ -79,6 +104,18 @@ class AddActionIR(TypedDict):
     amount: ValueIR
 
 
+class ForEachIR(TypedDict):
+    type: Literal["ForEach"]
+    list: StateRefIR
+    var: str
+    body: IRNode
+
+
+class VarRefIR(TypedDict):
+    type: Literal["VarRef"]
+    name: str
+
+
 @singledispatch
 def to_ir(node) -> IRNode:
     raise TypeError(f"don't know how to compile {type(node)!r}")
@@ -91,7 +128,7 @@ def _(elem: Elem) -> ElemIR:
         "tag": elem.tag,
         "classes": elem.classes,
         "children": tuple(map(to_ir, elem.children)),
-        "events": tuple(map(_event_to_ir, elem.events))
+        "events": tuple(map(_event_to_ir, elem.events)),
     }
 
 
@@ -137,6 +174,24 @@ def _(if_: If) -> IfIR:
     }
 
 
+@to_ir.register
+def _(each: ForEach) -> ForEachIR:
+    return {
+        "type": "ForEach",
+        "list": cast(StateRefIR, to_ir(each.list)),
+        "var": each.var,
+        "body": to_ir(each.body),
+    }
+
+
+@to_ir.register
+def _(varref: VarRef) -> VarRefIR:
+    return {
+        "type": "VarRef",
+        "name": varref.name,
+    }
+
+
 def _condition_to_ir(condition: Condition) -> ConditionIR:
     return {
         "type": "Condition",
@@ -153,10 +208,7 @@ def _value_to_ir(value: Value) -> LiteralIR | StateRefIR:
 
 
 def _event_to_ir(event: Event) -> EventIR:
-    return {
-        "name": event.name,
-        "actions": tuple(map(_action_to_ir, event.actions))
-    }
+    return {"name": event.name, "actions": tuple(map(_action_to_ir, event.actions))}
 
 
 @singledispatch

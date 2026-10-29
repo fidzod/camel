@@ -2,7 +2,8 @@
 
 Reference for the JSON intermediate representation Camel compiles the DSL to.
 This doc just covers what's implemented so far (`Elem`, `Fragment`, `Empty`,
-`Text`, `State`, `StateRef`, `If`, `Condition`, `Literal`, `Event`, `Action`).
+`Text`, `State`, `StateRef`, `If`, `Condition`, `Literal`, `Event`, `Action`,
+`ForEach`, `VarRef`).
 
 ## Shape
 
@@ -85,10 +86,10 @@ No fields. Represents the absence of a node.
 {"type": "State", "initial": {"clicks": 0}, "child": {...}}
 ```
 
-| field   | type                        |
-|---------|-----------------------------|
-| initial | dict[string, int \| string] |
-| child   | Node                        |
+| field   | type                                      |
+|---------|-------------------------------------------|
+| initial | dict[string, int \| string \| (int\|string)[]] |
+| child   | Node                                       |
 
 Introduces a lexical scope over `child`: each entry in `initial` declares a
 named, reactive value, initialised to the given value. `State` nests freely
@@ -182,3 +183,36 @@ Adds `amount` to the value `target` refers to. `target` is always a
 `StateRef` - there's no sensible reading of "add to a literal." `amount` is
 a `Value` (a `Literal` or a `StateRef`), same as a `Condition`'s operands.
 Only ever appears inside an `Event`'s `actions`, never as a tree child.
+
+### ForEach
+
+```json
+{"type": "ForEach", "list": {...}, "var": "item", "body": {...}}
+```
+
+| field | type     |
+|-------|----------|
+| list  | StateRef |
+| var   | string   |
+| body  | Node     |
+
+Renders `body` once per item in the list `list` refers to, with `var`
+naming the item for `VarRef`s inside `body` to resolve. `list` is always a
+`StateRef` - there's no way to iterate a hardcoded list yet, since `Literal`
+can't hold one. Widen `Literal` and `list` together the day that's actually
+needed; typing `list` as a general `Value` now, ahead of that, would claim
+more than the IR can actually represent.
+
+### VarRef
+
+```json
+{"type": "VarRef", "name": "item"}
+```
+
+| field | type   |
+|-------|--------|
+| name  | string |
+
+Resolves `name` against the current item of the nearest enclosing
+`ForEach` - the loop equivalent of `StateRef`, but resolved against the
+current iteration rather than a lexical `State` scope.

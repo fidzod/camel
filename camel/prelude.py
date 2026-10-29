@@ -46,8 +46,20 @@ code = Elem("code")
 
 
 # State
-def let(**bindings: int | str):
-    return Let(tuple(bindings.items()))
+def let(**bindings: int | str | list[int | str]):
+    for key, x in bindings.items():
+        if not (
+            isinstance(x, (int, str))
+            or isinstance(x, list)
+            and all(isinstance(i, (int, str)) for i in x)
+        ):
+            raise TypeError(f'invalid binding "{key}"')
+    return Let(
+        tuple(
+            (name, tuple(value) if isinstance(value, list) else value)
+            for name, value in bindings.items()
+        )
+    )
 
 
 state = StateRefProxy()
