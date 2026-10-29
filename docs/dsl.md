@@ -81,8 +81,10 @@ raises `TypeError`.
 ## Actions
 
 `state.<name>.add(amount)` builds an action that adds `amount` to the named
-value - running it is the runtime's job, not Python's. `amount` can be a
-literal or another `state.<name>` reference.
+value; `state.<name>.append(value)` builds an action that appends `value`
+to the end of the named list - running either is the runtime's job, not
+Python's. `amount`/`value` can be a literal or another `state.<name>`
+reference.
 
 An `Action` is not a `Node` and can't be used as a child - it only ever
 appears inside `.on_click(...)`.

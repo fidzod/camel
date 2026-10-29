@@ -28,6 +28,26 @@ test("Add against an undeclared target raises", () => {
   );
 });
 
+test("Append adds value to the end of the target list", () => {
+  const tasks = signal(["milk"]);
+  runAction({ type: "Action", name: "Append", target: ref("tasks"), value: literal("eggs") }, { tasks });
+  assert.deepStrictEqual(tasks.get(), ["milk", "eggs"]);
+});
+
+test("Append's value may itself be a StateRef", () => {
+  const tasks = signal(["milk"]);
+  const next = signal("eggs");
+  runAction({ type: "Action", name: "Append", target: ref("tasks"), value: ref("next") }, { tasks, next });
+  assert.deepStrictEqual(tasks.get(), ["milk", "eggs"]);
+});
+
+test("Append against an undeclared target raises", () => {
+  assert.throws(
+    () => runAction({ type: "Action", name: "Append", target: ref("nope"), value: literal("eggs") }, {}),
+    /no such state reference: "nope"/,
+  );
+});
+
 test("an unknown action name raises", () => {
   assert.throws(
     () => runAction({ type: "Action", name: "Mystery" }, {}),

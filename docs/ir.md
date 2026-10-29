@@ -169,9 +169,12 @@ event name; `"click"` today.
 
 ```json
 {"type": "Action", "name": "Add", "target": {...}, "amount": {...}}
+{"type": "Action", "name": "Append", "target": {...}, "value": {...}}
 ```
 
-Currently one variant, `Add`:
+Two variants so far.
+
+`Add`:
 
 | field  | type     |
 |--------|----------|
@@ -179,10 +182,22 @@ Currently one variant, `Add`:
 | target | StateRef |
 | amount | Value    |
 
-Adds `amount` to the value `target` refers to. `target` is always a
-`StateRef` - there's no sensible reading of "add to a literal." `amount` is
-a `Value` (a `Literal` or a `StateRef`), same as a `Condition`'s operands.
-Only ever appears inside an `Event`'s `actions`, never as a tree child.
+Adds `amount` to the value `target` refers to.
+
+`Append`:
+
+| field  | type     |
+|--------|----------|
+| name   | "Append" |
+| target | StateRef |
+| value  | Value    |
+
+Appends `value` to the end of the list `target` refers to.
+
+Both: `target` is always a `StateRef` - there's no sensible reading of
+"add to"/"append to" a literal. `amount`/`value` is a `Value` (a `Literal`
+or a `StateRef`), same as a `Condition`'s operands. Only ever appears
+inside an `Event`'s `actions`, never as a tree child.
 
 ### ForEach
 

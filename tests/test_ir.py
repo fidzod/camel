@@ -116,6 +116,38 @@ def test_add_action_amount_may_be_a_state_ref():
     assert action["amount"] == {"type": "StateRef", "name": "step"}
 
 
+def test_on_click_append_action():
+    elem = Elem("button").on_click(StateRef("tasks").append("milk"))
+    assert to_ir(elem) == {
+        "type": "Elem",
+        "tag": "button",
+        "classes": (),
+        "children": (),
+        "events": (
+            {
+                "name": "click",
+                "actions": (
+                    {
+                        "type": "Action",
+                        "name": "Append",
+                        "target": {"type": "StateRef", "name": "tasks"},
+                        "value": {"type": "Literal", "value": "milk"},
+                    },
+                ),
+            },
+        ),
+    }
+
+
+def test_append_action_value_may_be_a_state_ref():
+    elem = Elem("button").on_click(StateRef("tasks").append(StateRef("new")))
+    ir = to_ir(elem)
+    assert ir["type"] == "Elem"
+    (event,) = ir["events"]
+    (action,) = event["actions"]
+    assert action["value"] == {"type": "StateRef", "name": "new"}
+
+
 def test_realistic_tree_compiles_flat():
     site = (Elem("h1").brand_color > "Camel.py") + (
         Elem("div").card.featured

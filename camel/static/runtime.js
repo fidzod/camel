@@ -23,6 +23,11 @@ const runAction = (action, env) => {
       target.set(target.get() + evalValue(action.amount, env));
       return;
     }
+    case "Append": {
+      const target = resolveStateRef(action.target, env);
+      target.set([...target.get(), evalValue(action.value, env)]);
+      return;
+    }
     default:
       throw new Error(`don't know how to run action "${action.name}"`);
   }

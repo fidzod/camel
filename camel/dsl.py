@@ -67,6 +67,19 @@ class AddAction(Action):
 
 
 @dataclass(frozen=True)
+class AppendAction(Action):
+    target: StateRef
+    value: Value
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, AppendAction):
+            return NotImplemented
+        return _value_equal(self.target, other.target) and _value_equal(
+            self.value, other.value
+        )
+
+
+@dataclass(frozen=True)
 class Event:
     name: str
     actions: tuple[Action, ...] = ()
@@ -144,6 +157,9 @@ class StateRef(Node):
 
     def add(self, value: Value) -> AddAction:
         return AddAction(self, value)
+
+    def append(self, value: Value) -> AppendAction:
+        return AppendAction(self, value)
 
     def each(self, fn: Callable[[VarRef], Child]) -> ForEach:
         params = list(inspect.signature(fn).parameters)

@@ -7,6 +7,7 @@ from typing import Literal, TypedDict, cast
 from camel.dsl import (
     Action,
     AddAction,
+    AppendAction,
     BindingValue,
     Condition,
     Elem,
@@ -94,14 +95,21 @@ class EventIR(TypedDict):
     actions: tuple[ActionIR, ...]
 
 
-type ActionIR = AddActionIR  # | ...
+type ActionIR = AddActionIR | AppendActionIR
 
 
 class AddActionIR(TypedDict):
     type: Literal["Action"]
-    name: str
+    name: Literal["Add"]
     target: StateRefIR
     amount: ValueIR
+
+
+class AppendActionIR(TypedDict):
+    type: Literal["Action"]
+    name: Literal["Append"]
+    target: StateRefIR
+    value: ValueIR
 
 
 class ForEachIR(TypedDict):
@@ -223,4 +231,14 @@ def _(action: AddAction) -> AddActionIR:
         "name": "Add",
         "target": cast(StateRefIR, to_ir(action.target)),
         "amount": _value_to_ir(action.amount),
+    }
+
+
+@_action_to_ir.register
+def _(action: AppendAction) -> AppendActionIR:
+    return {
+        "type": "Action",
+        "name": "Append",
+        "target": cast(StateRefIR, to_ir(action.target)),
+        "value": _value_to_ir(action.value),
     }
