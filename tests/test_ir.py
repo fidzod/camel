@@ -4,8 +4,8 @@ from typing import cast
 
 import pytest
 
-from camel.dsl import Elem, Empty, Let, PartialIf, StateRef
-from camel.ir import AddActionIR, AppendActionIR, ElemIR, TextIR, to_ir
+from camel.dsl import Elem, Empty, Let, PartialIf, StateRef, StyleScope
+from camel.ir import AddActionIR, AppendActionIR, ElemIR, StyleScopeIR, TextIR, to_ir
 
 
 def test_text():
@@ -193,6 +193,65 @@ def test_bind_compiles_to_its_state_ref():
     ir = to_ir(elem)
     assert ir["type"] == "Elem"
     assert ir["bind"] == {"type": "StateRef", "name": "new"}
+
+
+def test_style_scope_compiles_with_an_id_and_child():
+    scope = Elem("div").style({"p": {"color": "red"}})
+    ir = to_ir(scope)
+    assert ir["type"] == "StyleScope"
+    assert isinstance(ir["id"], str)
+    assert ir["child"] == {
+        "type": "Elem",
+        "tag": "div",
+        "classes": (),
+        "children": (),
+        "events": (),
+        "bind": {"type": "Empty"},
+    }
+
+
+def _style_scope_ir(node) -> StyleScopeIR:
+    return cast(StyleScopeIR, to_ir(node))
+
+
+def test_style_scope_id_is_deterministic_from_content():
+    s1 = Elem("div").style({"p": {"color": "red"}})
+    s2 = Elem("div").style({"p": {"color": "red"}})
+    assert _style_scope_ir(s1)["id"] == _style_scope_ir(s2)["id"]
+
+
+def test_style_scope_id_differs_for_different_rules():
+    s1 = Elem("div").style({"p": {"color": "red"}})
+    s2 = Elem("div").style({"p": {"color": "blue"}})
+    assert _style_scope_ir(s1)["id"] != _style_scope_ir(s2)["id"]
+
+
+def test_style_scope_id_differs_for_different_children():
+    s1 = Elem("div").style({"p": {"color": "red"}})
+    s2 = Elem("span").style({"p": {"color": "red"}})
+    assert _style_scope_ir(s1)["id"] != _style_scope_ir(s2)["id"]
+
+
+def test_nested_style_scopes_compile():
+    inner = Elem("p").style({"p": {"color": "red"}})
+    outer = (Elem("div") > inner).style({"div": {"margin": "0"}})
+
+    ir = to_ir(outer)
+    assert ir["type"] == "StyleScope"
+
+    div_ir = cast(ElemIR, ir["child"])
+    assert div_ir["type"] == "Elem"
+
+    (inner_ir,) = (cast(StyleScopeIR, c) for c in div_ir["children"])
+    assert inner_ir["type"] == "StyleScope"
+    assert inner_ir["child"] == {
+        "type": "Elem",
+        "tag": "p",
+        "classes": (),
+        "children": (),
+        "events": (),
+        "bind": {"type": "Empty"},
+    }
 
 
 def test_realistic_tree_compiles_flat():

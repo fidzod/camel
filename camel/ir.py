@@ -19,6 +19,7 @@ from camel.dsl import (
     RestoreAction,
     State,
     StateRef,
+    StyleScope,
     Value,
     VarRef,
 )
@@ -34,6 +35,7 @@ type IRNode = (
     | IfIR
     | ForEachIR
     | VarRefIR
+    | StyleScopeIR
 )
 
 type ValueIR = LiteralIR | StateRefIR
@@ -132,6 +134,12 @@ class VarRefIR(TypedDict):
     name: str
 
 
+class StyleScopeIR(TypedDict):
+    type: Literal["StyleScope"]
+    id: str
+    child: IRNode
+
+
 @singledispatch
 def to_ir(node) -> IRNode:
     raise TypeError(f"don't know how to compile {type(node)!r}")
@@ -145,7 +153,7 @@ def _(elem: Elem) -> ElemIR:
         "classes": elem.classes,
         "children": tuple(map(to_ir, elem.children)),
         "events": tuple(map(_event_to_ir, elem.events)),
-        "bind": cast(StateRefIR | EmptyIR, to_ir(elem.bind_))
+        "bind": cast(StateRefIR | EmptyIR, to_ir(elem.bind_)),
     }
 
 
@@ -209,6 +217,15 @@ def _(varref: VarRef) -> VarRefIR:
     }
 
 
+@to_ir.register
+def _(stylescope: StyleScope) -> StyleScopeIR:
+    return {
+        "type": "StyleScope",
+        "id": format(hash(stylescope), "x"),
+        "child": to_ir(stylescope.child),
+    }
+
+
 def _condition_to_ir(condition: Condition) -> ConditionIR:
     return {
         "type": "Condition",
@@ -251,6 +268,7 @@ def _(action: AppendAction) -> AppendActionIR:
         "target": cast(StateRefIR, to_ir(action.target)),
         "value": _value_to_ir(action.value),
     }
+
 
 @_action_to_ir.register
 def _(action: RestoreAction) -> RestoreActionIR:
