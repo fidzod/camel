@@ -24,6 +24,10 @@ def _require_child(x: Any) -> None:
 type Value = int | str | StateRef
 
 
+# Used for StyleScope
+type Rules = tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
+
+
 def _flatten(items: Iterable[Child]) -> Iterator[Child]:
     for item in items:
         if isinstance(item, Fragment):
@@ -271,4 +275,8 @@ class VarRef(Node):
 @dataclass(frozen=True)
 class StyleScope(Node):
     child: Node
-    rules: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
+    rules: Rules
+
+    @property
+    def id(self) -> str:
+        return format(hash(self), "x")

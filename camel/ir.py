@@ -221,7 +221,7 @@ def _(varref: VarRef) -> VarRefIR:
 def _(stylescope: StyleScope) -> StyleScopeIR:
     return {
         "type": "StyleScope",
-        "id": format(hash(stylescope), "x"),
+        "id": stylescope.id,
         "child": to_ir(stylescope.child),
     }
 
