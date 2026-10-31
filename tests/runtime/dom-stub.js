@@ -12,6 +12,7 @@ class FakeNode {
     this.text = null;
     this._cls = "";
     this._listeners = {};
+    this.dataset = {};
   }
 
   get nextSibling() {
@@ -68,7 +69,8 @@ class FakeNode {
     if (this.kind === "comment") return `<!--${this.text}-->`;
     if (this.kind === "fragment") return this.childNodes.map(c => c.toString()).join("");
     const cls = this._cls ? ` class="${this._cls}"` : "";
-    return `<${this.tag}${cls}>${this.childNodes.map(c => c.toString()).join("")}</${this.tag}>`;
+    const scope = this.dataset.scope ? ` data-scope="${this.dataset.scope}"` : "";
+    return `<${this.tag}${cls}${scope}>${this.childNodes.map(c => c.toString()).join("")}</${this.tag}>`;
   }
 }
 

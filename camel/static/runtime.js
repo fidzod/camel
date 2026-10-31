@@ -40,11 +40,11 @@ const runAction = (action, env) => {
   }
 };
 
-const renderChildren = (children, env, vars) => children.map(child => render(child, env, vars));
+const renderChildren = (children, env, vars, scopes) => children.map(child => render(child, env, vars, scopes));
 
-const renderElement = (node, env, vars) => {
+const renderElement = (node, env, vars, scopes) => {
   const element = document.createElement(node.tag);
-  element.append(...renderChildren(node.children, env, vars));
+  element.append(...renderChildren(node.children, env, vars, scopes));
 
   if (node.classes.length) element.className = node.classes.join(" ");
 
@@ -65,12 +65,14 @@ const renderElement = (node, env, vars) => {
     });
   }
 
+  if (scopes.length) element.dataset.scope = scopes.join(" ");
+
   return element;
 }
 
-const renderFragment = (node, env, vars) => {
+const renderFragment = (node, env, vars, scopes) => {
   const fragment = document.createDocumentFragment();
-  fragment.append(...renderChildren(node.children, env, vars));
+  fragment.append(...renderChildren(node.children, env, vars, scopes));
   return fragment;
 }
 
@@ -78,13 +80,13 @@ const renderText = (node, _env) => {
   return document.createTextNode(node.contents);
 }
 
-const renderState = (node, env, vars) => {
+const renderState = (node, env, vars, scopes) => {
   const childEnv = {
     ...env, ...Object.fromEntries(
       Object.entries(node.initial).map(([name, value]) => [name, signal(value)])
     )
   };
-  return render(node.child, childEnv, vars);
+  return render(node.child, childEnv, vars, scopes);
 }
 
 const renderStateRef = (node, env, vars) => {
@@ -119,7 +121,7 @@ const conditionDependencies = (condition, env) =>
     .filter(value => value.type === "StateRef")
     .map(value => resolveStateRef(value, env));
 
-const renderIf = (node, env, vars) => {
+const renderIf = (node, env, vars, scopes) => {
   const start = document.createComment("if");
   const end = document.createComment("/if");
   const fragment = document.createDocumentFragment();
@@ -130,7 +132,7 @@ const renderIf = (node, env, vars) => {
       start.nextSibling.remove();
     }
     const branch = evalCondition(node.condition, env) ? node.then : node.otherwise;
-    end.before(render(branch, env, vars));
+    end.before(render(branch, env, vars, scopes));
   };
 
   update();
@@ -138,7 +140,7 @@ const renderIf = (node, env, vars) => {
   return fragment;
 };
 
-const renderForEach = (node, env, vars) => {
+const renderForEach = (node, env, vars, scopes) => {
   const start = document.createComment("each");
   const end = document.createComment("/each");
   const fragment = document.createDocumentFragment();
@@ -151,7 +153,7 @@ const renderForEach = (node, env, vars) => {
       start.nextSibling.remove();
     }
     list.get().forEach(item => {
-      end.before(render(node.body, env, { ...vars, [node.var]: item }));
+      end.before(render(node.body, env, { ...vars, [node.var]: item }, scopes));
     })
   }
 
@@ -166,24 +168,26 @@ const renderVarRef = (node, _env, vars) => {
   return document.createTextNode(value);
 }
 
-const render = (node, env, vars) => {
+const render = (node, env, vars, scopes = []) => {
   switch (node.type) {
     case "Elem":
-      return renderElement(node, env, vars);
+      return renderElement(node, env, vars, scopes);
     case "Text":
       return renderText(node, env, vars);
     case "Fragment":
-      return renderFragment(node, env, vars);
+      return renderFragment(node, env, vars, scopes);
     case "State":
-      return renderState(node, env, vars);
+      return renderState(node, env, vars, scopes);
     case "StateRef":
       return renderStateRef(node, env, vars);
     case "If":
-      return renderIf(node, env, vars);
+      return renderIf(node, env, vars, scopes);
     case "ForEach":
-      return renderForEach(node, env, vars);
+      return renderForEach(node, env, vars, scopes);
     case "VarRef":
       return renderVarRef(node, env, vars);
+    case "StyleScope":
+      return render(node.child, env, vars, [...scopes, node.id]);
     default:
       throw new Error(`don't know how to render node "${node.type}"`);
   }
@@ -205,5 +209,5 @@ if (typeof module !== "undefined") {
 
 document.addEventListener("DOMContentLoaded", () => {
   const root = document.getElementById("root");
-  root.append(render(site, {}, {}));
+  root.append(render(site, {}, {}, []));
 });
