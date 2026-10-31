@@ -14,10 +14,12 @@ from camel.dsl import (
     Fragment,
     If,
     Let,
+    Node,
     PartialIf,
     State,
     StateRef,
     StateRefProxy,
+    StyleScope,
 )
 
 
@@ -261,3 +263,55 @@ def test_append_action_equality_survives_state_ref():
     tree1 = Elem("button").on_click(a1)
     tree2 = Elem("button").on_click(a2)
     assert tree1 == tree2
+
+
+def test_style_wraps_the_node_in_a_style_scope():
+    node = Elem("div")
+    scope = node.style({"p": {"color": "red"}})
+    assert isinstance(scope, StyleScope)
+    assert scope.child is node
+
+
+def test_style_converts_rules_to_tuples():
+    scope = Elem("div").style(
+        {
+            "p": {"color": "red", "font-weight": "bold"},
+            ".large:hover": {"color": "blue"},
+        }
+    )
+    assert scope.rules == (
+        ("p", (("color", "red"), ("font-weight", "bold"))),
+        (".large:hover", (("color", "blue"),)),
+    )
+
+
+def test_style_scope_is_a_node_and_is_usable_as_a_child():
+    scope = Elem("p").style({"p": {"color": "red"}})
+    assert isinstance(scope, Node)
+    built = Elem("div") > scope
+    assert scope in built.children
+
+
+def test_style_scope_is_hashable():
+    hash(Elem("div").style({"p": {"color": "red"}}))  # must not raise
+
+
+def test_style_scope_equality_and_hash_are_structural():
+    s1 = Elem("div").style({"p": {"color": "red"}})
+    s2 = Elem("div").style({"p": {"color": "red"}})
+    assert s1 == s2
+    assert hash(s1) == hash(s2)
+
+
+def test_style_scope_inequality_for_different_rules():
+    s1 = Elem("div").style({"p": {"color": "red"}})
+    s2 = Elem("div").style({"p": {"color": "blue"}})
+    assert s1 != s2
+
+
+def test_style_scopes_nest():
+    inner = Elem("p").style({"p": {"color": "red"}})
+    outer = (Elem("div") > inner).style({"div": {"margin": "0"}})
+    assert isinstance(outer, StyleScope)
+    assert isinstance(outer.child, Elem)
+    assert inner in outer.child.children

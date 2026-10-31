@@ -43,6 +43,13 @@ class Node:
     def __bool__(self):
         raise TypeError("Nodes have no truth value; parenthesise `>` chains")
 
+    def style(self, rules: dict[str, dict[str, str]]) -> StyleScope:
+        rules_tuple = tuple(
+            (selector, tuple(declarations.items()))
+            for selector, declarations in rules.items()
+        )
+        return StyleScope(self, rules_tuple)
+
 
 class Action:
     pass
@@ -129,9 +136,8 @@ class Elem(Node):
 
     def bind(self, state: StateRef):
         if self.tag != "input":
-            raise TypeError(f"Cannot bind to \"{self.tag}\" element: expected \"input\"")
+            raise TypeError(f'Cannot bind to "{self.tag}" element: expected "input"')
         return dataclasses.replace(self, bind_=state)
-        
 
     def on_click(self, *actions: Action):
         for action in actions:
@@ -260,3 +266,9 @@ class ForEach(Node):
 @dataclass(frozen=True)
 class VarRef(Node):
     name: str
+
+
+@dataclass(frozen=True)
+class StyleScope(Node):
+    child: Node
+    rules: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
