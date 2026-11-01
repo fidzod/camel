@@ -151,9 +151,13 @@ def test_otherwise_replaces_the_default():
 
 def test_then_and_otherwise_reject_invalid_children():
     with pytest.raises(TypeError):
-        PartialIf(StateRef("clicks") == 1).then(42)  # pyright: ignore[reportArgumentType]
+        PartialIf(StateRef("clicks") == 1).then(
+            42
+        )  # pyright: ignore[reportArgumentType]
     with pytest.raises(TypeError):
-        PartialIf(StateRef("clicks") == 1).then("click").otherwise(42)  # pyright: ignore[reportArgumentType]
+        PartialIf(StateRef("clicks") == 1).then("click").otherwise(
+            42
+        )  # pyright: ignore[reportArgumentType]
 
 
 def test_if_equality_survives_nested_state_refs():
@@ -167,7 +171,9 @@ def test_if_equality_survives_nested_state_refs():
 
 def test_state_ref_inequality_raises_rather_than_lying():
     with pytest.raises(TypeError):
-        StateRef("clicks") != StateRef("other")  # pyright: ignore[reportUnusedExpression]
+        StateRef("clicks") != StateRef(
+            "other"
+        )  # pyright: ignore[reportUnusedExpression]
 
 
 def test_add_builds_an_action():

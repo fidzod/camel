@@ -30,12 +30,20 @@ def test_fragment():
         "type": "Fragment",
         "children": (
             {
-                "type": "Elem", "tag": "p", "classes": (), "children": (),
-                "events": (), "bind": {"type": "Empty"},
+                "type": "Elem",
+                "tag": "p",
+                "classes": (),
+                "children": (),
+                "events": (),
+                "bind": {"type": "Empty"},
             },
             {
-                "type": "Elem", "tag": "span", "classes": (), "children": (),
-                "events": (), "bind": {"type": "Empty"},
+                "type": "Elem",
+                "tag": "span",
+                "classes": (),
+                "children": (),
+                "events": (),
+                "bind": {"type": "Empty"},
             },
         ),
     }
