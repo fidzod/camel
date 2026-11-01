@@ -27,18 +27,18 @@ def test_generate_copies_runtime_js_and_index_html(out_dir: Path):
 
 def test_generate_links_the_stylesheet_in_index_html(out_dir: Path):
     generate(Elem("p"))
-    assert '<link rel="stylesheet" href="styles.css">' in (out_dir / "index.html").read_text()
+    assert '<link rel="stylesheet" href="style.css">' in (out_dir / "index.html").read_text()
 
 
 def test_generate_writes_an_empty_stylesheet_when_tree_has_no_style_scopes(out_dir: Path):
     generate(Elem("div") > Elem("p"))
-    assert (out_dir / "styles.css").read_text() == ""
+    assert (out_dir / "style.css").read_text() == ""
 
 
 def test_generate_writes_css_for_a_style_scope(out_dir: Path):
     scope = Elem("p").style({"p": {"color": "red"}})
     generate(scope)
-    assert (out_dir / "styles.css").read_text() == (
+    assert (out_dir / "style.css").read_text() == (
         f'p[data-scope~="{scope.id}"] {{\n\tcolor: red;\n}}'
     )
 

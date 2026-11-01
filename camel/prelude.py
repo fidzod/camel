@@ -6,6 +6,7 @@ __all__ = [
     "h5",
     "h6",
     "p",
+    "span",
     "b",
     "a",
     "i",
@@ -33,6 +34,7 @@ h4 = Elem("h4")
 h5 = Elem("h5")
 h6 = Elem("h6")
 p = Elem("p")
+span = Elem("span")
 b = Elem("b")
 a = Elem("a")
 i = Elem("i")
