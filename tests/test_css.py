@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from camel.css import ScopedRules, _collect_styles, to_css
+from camel.css import ScopedRules, _collect_styles, _to_css, to_css
 from camel.dsl import Elem, Empty, Let, PartialIf, StateRef
 
 
@@ -70,13 +70,13 @@ def test_collect_styles_finds_sibling_style_scopes():
     assert _rules(tree) == [(s1.id, s1.rules), (s2.id, s2.rules)]
 
 
-def test_to_css_of_empty_input_is_empty_string():
-    assert to_css([]) == ""
+def test__to_css_of_empty_input_is_empty_string():
+    assert _to_css([]) == ""
 
 
-def test_to_css_formats_one_rule_block_per_selector():
+def test__to_css_formats_one_rule_block_per_selector():
     scope = Elem("p").style({"p": {"color": "red", "font-weight": "bold"}})
-    css = to_css([(scope.id, scope.rules)])
+    css = _to_css([(scope.id, scope.rules)])
     assert css == (
         f'p[data-scope~="{scope.id}"] {{\n'
         "\tcolor: red;\n"
@@ -85,10 +85,10 @@ def test_to_css_formats_one_rule_block_per_selector():
     )
 
 
-def test_to_css_emits_a_block_per_selector_across_multiple_scopes():
+def test__to_css_emits_a_block_per_selector_across_multiple_scopes():
     scope1 = Elem("p").style({"p": {"color": "red"}})
     scope2 = Elem("span").style({"span": {"color": "blue"}, "a": {"color": "green"}})
-    css = to_css([(scope1.id, scope1.rules), (scope2.id, scope2.rules)])
+    css = _to_css([(scope1.id, scope1.rules), (scope2.id, scope2.rules)])
     assert css == (
         f'p[data-scope~="{scope1.id}"] {{\n'
         "\tcolor: red;\n"
@@ -102,7 +102,10 @@ def test_to_css_emits_a_block_per_selector_across_multiple_scopes():
     )
 
 
-def test_collect_styles_then_to_css_end_to_end():
+def test_to_css_of_a_tree_with_no_style_scopes_is_empty_string():
+    assert to_css(Elem("div") > Elem("p")) == ""
+
+
+def test_to_css_runs_collect_styles_and_formatting_end_to_end():
     scope = (Elem("ul") > Elem("li")).style({"li": {"font-weight": "bold"}})
-    css = to_css(_collect_styles(scope))
-    assert css == f'li[data-scope~="{scope.id}"] {{\n\tfont-weight: bold;\n}}'
+    assert to_css(scope) == f'li[data-scope~="{scope.id}"] {{\n\tfont-weight: bold;\n}}'

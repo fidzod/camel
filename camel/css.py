@@ -1,3 +1,5 @@
+__all__ = ["to_css"]
+
 from collections.abc import Iterable, Iterator
 from functools import singledispatch
 
@@ -45,7 +47,11 @@ def _(scope: StyleScope) -> Iterator[ScopedRules]:
     yield from _collect_styles(scope.child)
 
 
-def to_css(scoped_rules: Iterable[ScopedRules]) -> str:
+def to_css(tree: Node) -> str:
+    return _to_css(_collect_styles(tree))
+
+
+def _to_css(scoped_rules: Iterable[ScopedRules]) -> str:
     # fmt: off
     return "\n".join(
         [
