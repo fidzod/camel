@@ -12,7 +12,9 @@ def _write_page(path: Path, tag: str) -> None:
     path.write_text(f'from camel.dsl import Elem\npage = Elem("{tag}")\n')
 
 
-def test_build_writes_a_site_for_a_single_page(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_build_writes_a_site_for_a_single_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     monkeypatch.chdir(tmp_path)
     _write_page(tmp_path / "src" / "pages" / "app.py", "h1")
 
@@ -25,7 +27,9 @@ def test_build_writes_a_site_for_a_single_page(tmp_path: Path, monkeypatch: pyte
     assert (build_dir / "index.html").exists()
 
 
-def test_build_compiles_every_discovered_page(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_build_compiles_every_discovered_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     monkeypatch.chdir(tmp_path)
     _write_page(tmp_path / "src" / "pages" / "app.py", "h1")
     _write_page(tmp_path / "src" / "pages" / "about" / "app.py", "p")
@@ -49,7 +53,9 @@ def test_build_copies_static_assets(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert (tmp_path / "build" / "favicon.ico").exists()
 
 
-def test_build_exits_if_src_is_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+def test_build_exits_if_src_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+):
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(SystemExit):
@@ -58,7 +64,9 @@ def test_build_exits_if_src_is_missing(tmp_path: Path, monkeypatch: pytest.Monke
     assert "src" in capsys.readouterr().err
 
 
-def test_build_exits_if_pages_dir_is_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys):
+def test_build_exits_if_pages_dir_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
 
