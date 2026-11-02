@@ -1,39 +1,51 @@
 import argparse
-import os
+from pathlib import Path
 import shutil
 import subprocess
 import sys
-from pathlib import Path
+from typing import Optional
 
 from livereload import Server
 
+from camel.route import PageError, load_pages
+from camel.site import write_site
 
-def watch(app: str):
-    build(app)
+
+def _expect_exists(directory: Path, name: Optional[str] = None) -> None:
+    if not directory.exists():
+        sys.stderr.write(f"Could not find '{name or directory.name}'\n")
+        raise SystemExit(1)
+
+
+def watch():
+    build()
+
+    # Existence already confirmed in build
+    src_dir = Path.cwd() / "src"
+
     server = Server()
-    server.watch(app, lambda: build(app))
+    server.watch(src_dir, build)
     server.serve(root="build", port=5000)
 
 
-def build(app: str):
+def build():
     build_dir = Path.cwd() / "build"
     build_dir.mkdir(exist_ok=True)
 
-    env = os.environ.copy()
-    env["CAMEL_OUT"] = str(build_dir)
+    src_dir = Path.cwd() / "src"
+    _expect_exists(src_dir)
 
-    result = subprocess.run(
-        [sys.executable, app], env=env, capture_output=True, text=True
-    )
+    pages_dir = src_dir / "pages"
+    _expect_exists(pages_dir, "src/pages")
 
-    if result.returncode != 0:
-        print(result.stdout)
-        print("Build failed with errors:\n")
-        print(result.stderr)
+    try:
+        routes = load_pages(pages_dir)
+    except* PageError as eg:
+        for error in eg.exceptions:
+            sys.stderr.write(f"{error}\n")
         raise SystemExit(1)
 
-    if result.stdout:
-        print(result.stdout)
+    write_site(routes, build_dir)
 
     static = Path.cwd() / "static"
     if static.exists():
@@ -51,19 +63,17 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     build_parser = subparsers.add_parser("build")
-    build_parser.add_argument("app")
 
     watch_parser = subparsers.add_parser("watch")
-    watch_parser.add_argument("app")
 
     subparsers.add_parser("format")
 
     args = parser.parse_args()
 
     if args.command == "build":
-        build(args.app)
+        build()
     elif args.command == "watch":
-        watch(args.app)
+        watch()
     elif args.command == "format":
         format_()
     else:
