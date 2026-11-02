@@ -33,12 +33,12 @@ def test_write_site_copies_runtime_js_and_index_html(tmp_path: Path):
     assert (tmp_path / "index.html").exists()
 
 
-def test_write_site_links_the_stylesheet_in_index_html(tmp_path: Path):
+def test_write_site_links_assets_by_absolute_path_in_index_html(tmp_path: Path):
     write_site({"/": Elem("p")}, tmp_path)
-    assert (
-        '<link rel="stylesheet" href="style.css">'
-        in (tmp_path / "index.html").read_text()
-    )
+    html = (tmp_path / "index.html").read_text()
+    assert '<link rel="stylesheet" href="/style.css">' in html
+    assert '<script src="/site.js"></script>' in html
+    assert '<script src="/runtime.js"></script>' in html
 
 
 def test_write_site_writes_an_empty_stylesheet_when_no_pages_have_style_scopes(
@@ -81,3 +81,24 @@ def test_write_site_creates_the_out_dir_if_missing(tmp_path: Path):
     nested = tmp_path / "a" / "b"
     write_site({"/": Elem("p")}, nested)
     assert (nested / "site.js").exists()
+
+
+def test_write_site_writes_a_shell_at_every_routes_path(tmp_path: Path):
+    write_site({"/": Elem("p"), "/about": Elem("p"), "/foo/bar": Elem("p")}, tmp_path)
+    assert (tmp_path / "index.html").exists()
+    assert (tmp_path / "about" / "index.html").exists()
+    assert (tmp_path / "foo" / "bar" / "index.html").exists()
+
+
+def test_write_site_shells_are_identical_across_routes(tmp_path: Path):
+    write_site({"/": Elem("p"), "/about": Elem("p")}, tmp_path)
+    assert (tmp_path / "index.html").read_text() == (
+        tmp_path / "about" / "index.html"
+    ).read_text()
+
+
+def test_write_site_writes_only_one_copy_of_the_shared_assets(tmp_path: Path):
+    write_site({"/": Elem("p"), "/about": Elem("p")}, tmp_path)
+    assert not (tmp_path / "about" / "site.js").exists()
+    assert not (tmp_path / "about" / "runtime.js").exists()
+    assert not (tmp_path / "about" / "style.css").exists()

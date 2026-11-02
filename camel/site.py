@@ -21,4 +21,8 @@ def write_site(routes: dict[str, Node], out: Path) -> None:
     (out / "style.css").write_text(css)
 
     shutil.copy(_STATIC / "runtime.js", out / "runtime.js")
-    shutil.copy(_STATIC / "index.html", out / "index.html")
+
+    for route in routes:
+        shell = out / route.removeprefix("/")
+        shell.mkdir(parents=True, exist_ok=True)
+        shutil.copy(_STATIC / "index.html", shell / "index.html")

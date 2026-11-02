@@ -207,7 +207,8 @@ const reRender = (doc) => {
 }
 
 const mount = () => {
-  const page = site[window.location.pathname];
+  // Removes trailing backslash if present
+  const page = site[window.location.pathname.replace(/\/$/, "") || "/"];
   if (page === undefined) {
     // TODO
     throw new Error("404 - Page not found");

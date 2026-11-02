@@ -37,3 +37,25 @@ test("mount raises for a path with no matching page", () => {
 
   assert.throws(() => mount(), /404|not found/i);
 });
+
+test("mount strips a trailing slash before looking up the route", () => {
+  global.document = makeDocument();
+  const doc = global.document;
+  global.window = { location: { pathname: "/about/" } };
+  global.site = { "/about": { type: "Text", contents: "about" } };
+
+  mount();
+
+  assert.strictEqual(doc._root.toString(), "<div>about</div>");
+});
+
+test("mount treats a bare trailing-slash root the same as /", () => {
+  global.document = makeDocument();
+  const doc = global.document;
+  global.window = { location: { pathname: "/" } };
+  global.site = { "/": { type: "Text", contents: "home" } };
+
+  mount();
+
+  assert.strictEqual(doc._root.toString(), "<div>home</div>");
+});
