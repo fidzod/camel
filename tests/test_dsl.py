@@ -48,6 +48,27 @@ def test_emmet_classes_accumulate_in_order():
     assert styled.classes == ("card", "featured")
 
 
+def test_call_sets_attributes():
+    link = Elem("a")(href="https://example.com")
+    assert link.attributes == (("href", "https://example.com"),)
+
+
+def test_call_accumulates_across_repeated_calls():
+    link = Elem("a")(href="https://example.com")(target="_blank")
+    assert link.attributes == (("href", "https://example.com"), ("target", "_blank"))
+
+
+def test_call_does_not_merge_repeated_names():
+    link = Elem("a")(href="/a")(href="/b")
+    assert link.attributes == (("href", "/a"), ("href", "/b"))
+
+
+def test_call_does_not_mutate_the_original():
+    original = Elem("a")
+    original(href="/a")
+    assert original.attributes == ()
+
+
 def test_getattr_rejects_underscore_names():
     assert not hasattr(Elem("div"), "_private")
     with pytest.raises(AttributeError):

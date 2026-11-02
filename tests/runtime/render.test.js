@@ -21,6 +21,7 @@ test("renders Elem with tag, classes, and children", () => {
       children: [{ type: "Text", contents: "hi" }],
       events: [],
       bind: { type: "Empty" },
+      attributes: [],
     },
     {},
   );
@@ -30,7 +31,7 @@ test("renders Elem with tag, classes, and children", () => {
 test("Elem with no classes gets no class attribute", () => {
   global.document = makeDocument();
   const node = render(
-    { type: "Elem", tag: "p", classes: [], children: [], events: [], bind: { type: "Empty" } },
+    { type: "Elem", tag: "p", classes: [], children: [], events: [], bind: { type: "Empty" }, attributes: [] },
     {},
   );
   assert.strictEqual(node.toString(), "<p></p>");

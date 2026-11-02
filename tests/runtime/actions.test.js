@@ -94,6 +94,7 @@ test("clicking an Elem with on_click runs its actions", () => {
         },
       ],
       bind: { type: "Empty" },
+      attributes: [],
     },
     { clicks },
   );
@@ -122,6 +123,7 @@ test("multiple actions on one event all run, in order", () => {
       children: [],
       events: [{ name: "click", actions: [trackingAction("first"), trackingAction("second")] }],
       bind: { type: "Empty" },
+      attributes: [],
     },
     { clicks },
   );

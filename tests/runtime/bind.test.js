@@ -9,7 +9,7 @@ const ref = name => ({ type: "StateRef", name });
 const empty = { type: "Empty" };
 
 function inputNode(bind = empty) {
-  return { type: "Elem", tag: "input", classes: [], children: [], events: [], bind };
+  return { type: "Elem", tag: "input", classes: [], children: [], events: [], bind, attributes: [] };
 }
 
 test("an unbound element has no value wiring", () => {

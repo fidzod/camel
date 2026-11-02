@@ -11,9 +11,12 @@ class FakeNode {
     this.tag = null;
     this.text = null;
     this._cls = "";
+    this._attrs = {};
     this._listeners = {};
     this.dataset = {};
   }
+
+  setAttribute(name, value) { this._attrs[name] = value; }
 
   get nextSibling() {
     if (!this.parentNode) return null;
@@ -70,7 +73,8 @@ class FakeNode {
     if (this.kind === "fragment") return this.childNodes.map(c => c.toString()).join("");
     const cls = this._cls ? ` class="${this._cls}"` : "";
     const scope = this.dataset.scope ? ` data-scope="${this.dataset.scope}"` : "";
-    return `<${this.tag}${cls}${scope}>${this.childNodes.map(c => c.toString()).join("")}</${this.tag}>`;
+    const attrs = Object.entries(this._attrs).map(([name, value]) => ` ${name}="${value}"`).join("");
+    return `<${this.tag}${cls}${scope}${attrs}>${this.childNodes.map(c => c.toString()).join("")}</${this.tag}>`;
   }
 }
 

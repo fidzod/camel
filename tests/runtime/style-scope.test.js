@@ -6,7 +6,7 @@ global.document = makeDocument();
 const { render, signal } = require("../../camel/static/runtime.js");
 
 const elem = (tag, children = []) => ({
-  type: "Elem", tag, classes: [], events: [], bind: { type: "Empty" }, children,
+  type: "Elem", tag, classes: [], events: [], bind: { type: "Empty" }, attributes: [], children,
 });
 
 const text = contents => ({ type: "Text", contents });

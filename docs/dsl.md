@@ -21,11 +21,12 @@ Every node compares and hashes structurally, including nodes that contain a
 
 ## Elements
 
-`tag > child` appends `child`; repeated `>` keeps appending. `a + b` joins
-`a` and `b` as siblings into a `Fragment`, flattening any nested `Fragment`s
-so `children` stays flat. Attribute access (`div.card.featured`) appends a
-CSS class per attribute, in the order accessed. A plain `str` is a valid
-child anywhere - it compiles to `Text`.
+`tag > child` appends `child`; repeated `>` keeps appending. `a + b` joins `a`
+and `b` as siblings into a `Fragment`, flattening any nested `Fragment`s so
+`children` stays flat. Attribute access (`div.card.featured`) appends a CSS
+class per attribute, in the order accessed. Calling a tag (`a(href="...")`) sets
+HTML attributes, and accumulates across repeated calls the same way class access
+does. A plain `str` is a valid child anywhere - it compiles to `Text`.
 
 ## Vocabulary
 

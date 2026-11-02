@@ -48,6 +48,7 @@ class ElemIR(TypedDict):
     children: tuple[IRNode, ...]
     events: tuple[EventIR, ...]
     bind: StateRefIR | EmptyIR
+    attributes: tuple[tuple[str, str], ...]
 
 
 class FragmentIR(TypedDict):
@@ -154,6 +155,7 @@ def _(elem: Elem) -> ElemIR:
         "children": tuple(map(to_ir, elem.children)),
         "events": tuple(map(_event_to_ir, elem.events)),
         "bind": cast(StateRefIR | EmptyIR, to_ir(elem.bind_)),
+        "attributes": elem.attributes,
     }
 
 

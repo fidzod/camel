@@ -48,6 +48,14 @@ const renderElement = (node, env, vars, scopes) => {
 
   if (node.classes.length) element.className = node.classes.join(" ");
 
+  if (node.attributes.length) {
+    const grouped = node.attributes.reduce((map, [name, value]) =>
+      new Map(map).set(name, [...(map.get(name) ?? []), value]),
+    new Map());
+
+    grouped.forEach((values, name) => element.setAttribute(name, values.join(" ")));
+  }
+
   node.events.forEach(event => {
     element.addEventListener(event.name, () => {
       event.actions.forEach(action => runAction(action, env));

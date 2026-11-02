@@ -42,16 +42,17 @@ values), it should be split the same way `Action` is.
 ### Elem
 
 ```json
-{"type": "Elem", "tag": "div", "classes": ["card", "featured"], "children": [...], "events": [...], "bind": {"type": "Empty"}}
+{"type": "Elem", "tag": "div", "classes": ["card", "featured"], "children": [...], "events": [...], "bind": {"type": "Empty"}, "attributes": [["href", "https://example.com"]]}
 ```
 
-| field    | type              |
-|----------|-------------------|
-| tag      | string            |
-| classes  | string[]          |
-| children | Node[]            |
-| events   | Event[]           |
-| bind     | StateRef \| Empty |
+| field      | type                |
+|------------|---------------------|
+| tag        | string              |
+| classes    | string[]            |
+| children   | Node[]              |
+| events     | Event[]             |
+| bind       | StateRef \| Empty   |
+| attributes | [string, string][]  |
 
 `bind` is `Empty` on every `Elem` except an `input_` with `.bind(...)`
 attached - same "nothing here" value `If.otherwise` defaults to, rather
@@ -62,6 +63,13 @@ element's value and the `StateRef` it names in sync in both directions
 (state changes update the element; the user typing updates the state).
 `bind` is always a `StateRef` - there's no sensible reading of "bind to
 a literal," since binding reads *and* writes.
+
+`attributes` is a flat list of `[name, value]` pairs rather than an
+object keyed by name, since the DSL itself allows the same name to be
+set more than once - each call accumulates onto the list rather than
+replacing a prior entry for the same name. Values are always plain
+strings, fixed at compile time - there's no reactive `StateRef` form
+here, unlike `bind`.
 
 ### Fragment
 

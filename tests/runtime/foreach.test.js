@@ -11,7 +11,7 @@ const varRef = name => ({ type: "VarRef", name });
 function li(varName = "item") {
   return {
     type: "Elem", tag: "li", classes: [], children: [varRef(varName)],
-    events: [], bind: { type: "Empty" },
+    events: [], bind: { type: "Empty" }, attributes: [],
   };
 }
 
@@ -77,7 +77,7 @@ test("vars threads through a nested Elem (regression: renderChildren used to dro
   const items = signal(["a"]);
   const ul = {
     type: "Elem", tag: "ul", classes: [], events: [],
-    children: [forEachNode()], bind: { type: "Empty" },
+    children: [forEachNode()], bind: { type: "Empty" }, attributes: [],
   };
   doc._root.append(render(ul, { items }));
   assert.strictEqual(doc._root.toString(), "<div><ul><!--each--><li>a</li><!--/each--></ul></div>");

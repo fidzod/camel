@@ -127,6 +127,7 @@ class Elem(Node):
     classes: tuple[str, ...] = ()
     events: tuple[Event, ...] = ()
     bind_: StateRef | Empty = Empty()
+    attributes: tuple[tuple[str, str], ...] = ()
 
     def __gt__(self, child: Child):
         return dataclasses.replace(
@@ -137,6 +138,11 @@ class Elem(Node):
         if name.startswith("_"):
             raise AttributeError(name) from None
         return dataclasses.replace(self, classes=self.classes + (name,))
+
+    def __call__(self, **attrs: str):
+        return dataclasses.replace(
+            self, attributes=self.attributes + tuple(attrs.items())
+        )
 
     def bind(self, state: StateRef):
         if self.tag != "input":

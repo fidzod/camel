@@ -21,6 +21,7 @@ def test_elem():
         "children": ({"type": "Text", "contents": "hi"},),
         "events": (),
         "bind": {"type": "Empty"},
+        "attributes": (),
     }
 
 
@@ -36,6 +37,7 @@ def test_fragment():
                 "children": (),
                 "events": (),
                 "bind": {"type": "Empty"},
+                "attributes": (),
             },
             {
                 "type": "Elem",
@@ -44,6 +46,7 @@ def test_fragment():
                 "children": (),
                 "events": (),
                 "bind": {"type": "Empty"},
+                "attributes": (),
             },
         ),
     }
@@ -70,6 +73,7 @@ def test_state():
             "children": ({"type": "StateRef", "name": "clicks"},),
             "events": (),
             "bind": {"type": "Empty"},
+            "attributes": (),
         },
     }
 
@@ -121,6 +125,7 @@ def test_on_click_add_action():
             },
         ),
         "bind": {"type": "Empty"},
+        "attributes": (),
     }
 
 
@@ -154,6 +159,7 @@ def test_on_click_append_action():
             },
         ),
         "bind": {"type": "Empty"},
+        "attributes": (),
     }
 
 
@@ -186,6 +192,7 @@ def test_on_click_restore_action():
             },
         ),
         "bind": {"type": "Empty"},
+        "attributes": (),
     }
 
 
@@ -203,6 +210,26 @@ def test_bind_compiles_to_its_state_ref():
     assert ir["bind"] == {"type": "StateRef", "name": "new"}
 
 
+def test_elem_with_no_attributes_compiles_to_an_empty_list():
+    ir = to_ir(Elem("div"))
+    assert ir["type"] == "Elem"
+    assert ir["attributes"] == ()
+
+
+def test_elem_attributes_compile_to_a_list_of_pairs():
+    elem = Elem("a")(href="https://example.com", alt="desc")
+    ir = to_ir(elem)
+    assert ir["type"] == "Elem"
+    assert ir["attributes"] == (("href", "https://example.com"), ("alt", "desc"))
+
+
+def test_elem_attributes_accumulate_across_repeated_calls():
+    elem = Elem("a")(href="https://example.com")(target="_blank")
+    ir = to_ir(elem)
+    assert ir["type"] == "Elem"
+    assert ir["attributes"] == (("href", "https://example.com"), ("target", "_blank"))
+
+
 def test_style_scope_compiles_with_an_id_and_child():
     scope = Elem("div").style({"p": {"color": "red"}})
     ir = to_ir(scope)
@@ -215,6 +242,7 @@ def test_style_scope_compiles_with_an_id_and_child():
         "children": (),
         "events": (),
         "bind": {"type": "Empty"},
+        "attributes": (),
     }
 
 
@@ -259,6 +287,7 @@ def test_nested_style_scopes_compile():
         "children": (),
         "events": (),
         "bind": {"type": "Empty"},
+        "attributes": (),
     }
 
 
