@@ -45,6 +45,11 @@ class FakeNode {
     });
   }
 
+  replaceChildren(...nodes) {
+    [...this.childNodes].forEach(child => child.remove());
+    this.append(...nodes);
+  }
+
   before(...nodes) {
     const parent = this.parentNode;
     const i = parent.childNodes.indexOf(this);

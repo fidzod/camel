@@ -201,6 +201,22 @@ const render = (node, env, vars, scopes = []) => {
   }
 }
 
+const reRender = (doc) => {
+  const root = document.getElementById("root");
+  root.replaceChildren(render(doc, {}, {}, []));
+}
+
+const mount = () => {
+  const page = site[window.location.pathname];
+  if (page === undefined) {
+    // TODO
+    throw new Error("404 - Page not found");
+  }
+  reRender(page);
+}
+
+document.addEventListener("DOMContentLoaded", mount);
+
 // Exposed for testing in Node (see tests/runtime/) - inert in the browser,
 // since `module` is never declared there and `typeof` is safe on it.
 if (typeof module !== "undefined") {
@@ -212,10 +228,8 @@ if (typeof module !== "undefined") {
     evalValue,
     evalCondition,
     conditionDependencies,
+    mount,
+    reRender,
   };
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const root = document.getElementById("root");
-  root.append(render(site, {}, {}, []));
-});
