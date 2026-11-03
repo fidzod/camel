@@ -41,8 +41,8 @@ v6 is a ground-up rewrite of v5. The headline changes:
 - **Routing, not hash routing.** Hash routing has been replaced.
   Pages live under `src/pages/` (one directory per route, see
   `docs/routing.md`), and routes use clean URLs via the History API.
-  `cml build` writes a real file at every route's path, so a static host
-  - GitHub Pages or similar - serves deep links and hard refreshes
+  `cml build` writes a real file at every route's path, so a static host -
+  GitHub Pages or similar - serves deep links and hard refreshes
   correctly with zero server configuration. The trade-off: navigating
   between pages is a real page load, not an instant client-side swap -
   nothing intercepts link clicks.
