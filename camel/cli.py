@@ -1,51 +1,95 @@
 import argparse
-import os
-from livereload import Server
+from pathlib import Path
 import shutil
 import subprocess
-from pathlib import Path
+import sys
+from typing import Optional
+
+from livereload import Server
+
+from camel.route import PageError, load_pages
+from camel.site import write_site
+
+INIT_APP_PY = """
+from camel import *
+
+page = h1 > "🐪 My Camel Site"
+""".lstrip()
+
+INIT_PYPROJECT_TOML = """
+[project]
+name = "my-camel-site"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["camel"]
+""".lstrip()
+
+INIT_IGNORE = {".DS_Store", ".git"}
 
 
-def watch():
-    build()
-    server = Server()
-    server.watch("src", build)
-    server.serve(root="build", port=5000)
+def _expect_exists(directory: Path, name: Optional[str] = None) -> None:
+    if not directory.exists():
+        sys.stderr.write(f"Could not find '{name or directory.name}'\n")
+        raise SystemExit(1)
 
 
 def build():
-    root = Path(__file__).parent.parent
-    src = root / "src"
-    build = root / "build"
-    static = src / "static"
-    app = src / "app.py"
+    build_dir = Path.cwd() / "build"
+    build_dir.mkdir(exist_ok=True)
 
-    build.mkdir(exist_ok=True)
+    src_dir = Path.cwd() / "src"
+    _expect_exists(src_dir)
 
-    if static.exists():
-        shutil.copytree(static, build, dirs_exist_ok=True)
+    pages_dir = src_dir / "pages"
+    _expect_exists(pages_dir, "src/pages")
 
-    env = os.environ.copy()
-    env["CAMEL_OUT"] = str(build)
-
-    result = subprocess.run(
-        ["python", str(app)], env=env, capture_output=True, text=True
-    )
-
-    if result.returncode != 0:
-        print(result.stdout)
-        print("Build failed with errors:\n")
-        print(result.stderr)
+    try:
+        routes = load_pages(pages_dir)
+    except* PageError as eg:
+        for error in eg.exceptions:
+            sys.stderr.write(f"{error}\n")
         raise SystemExit(1)
 
-    if result.stdout:
-        print(result.stdout)
+    write_site(routes, build_dir)
+
+    static = Path.cwd() / "static"
+    if static.exists():
+        shutil.copytree(static, build_dir, dirs_exist_ok=True)
 
     print("🐪✨ Build successful!")
 
 
 def format_():
-    subprocess.run(["black", "src/"], check=True)
+    subprocess.run(["black", "."], check=True)
+
+
+def init():
+    cwd = Path.cwd()
+
+    if any(p.name not in INIT_IGNORE for p in cwd.iterdir()):
+        sys.stderr.write("Directory is not empty\n")
+        raise SystemExit(1)
+
+    (cwd / "src" / "pages").mkdir(parents=True)
+    (cwd / "src" / "components").mkdir()
+    (cwd / "static").mkdir()
+
+    (cwd / "src" / "pages" / "app.py").write_text(INIT_APP_PY)
+    (cwd / "pyproject.toml").write_text(INIT_PYPROJECT_TOML)
+
+    print("🐪✨ You're all set!")
+    print("Run: cml watch")
+
+
+def watch():
+    build()
+
+    # Existence already confirmed in build
+    src_dir = Path.cwd() / "src"
+
+    server = Server()
+    server.watch(src_dir, build)
+    server.serve(root="build", port=5000)
 
 
 def main():
@@ -53,19 +97,23 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("build")
+    subparsers.add_parser("fmt")
+    subparsers.add_parser("init")
     subparsers.add_parser("watch")
-    subparsers.add_parser("format")
 
     args = parser.parse_args()
 
-    if args.command == "build":
-        build()
-    elif args.command == "watch":
-        watch()
-    elif args.command == "format":
-        format_()
-    else:
-        parser.print_help()
+    match args.command:
+        case "build":
+            build()
+        case "fmt":
+            format_()
+        case "init":
+            init()
+        case "watch":
+            watch()
+        case _:
+            parser.print_help()
 
 
 if __name__ == "__main__":

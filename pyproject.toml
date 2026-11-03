@@ -5,8 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "camel"
 version = "0.5.0"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = ["black", "livereload"]
+
+[project.optional-dependencies]
+test = ["pytest", "hypothesis"]
 
 [project.scripts]
 cml = "camel.cli:main"
@@ -14,3 +17,6 @@ cml = "camel.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["camel*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
