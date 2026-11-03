@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from camel.cli import build
+from camel.cli import build, init
 
 
 def _write_page(path: Path, tag: str) -> None:
@@ -99,3 +99,40 @@ def test_build_exits_and_reports_every_broken_page(
     assert "oops" in err
     assert "boom" in err
     assert not (tmp_path / "build" / "site.js").exists()
+
+
+def test_init_scaffolds_the_expected_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(tmp_path)
+
+    init()
+
+    assert (tmp_path / "pyproject.toml").exists()
+    assert (tmp_path / "src" / "pages" / "app.py").exists()
+    assert (tmp_path / "src" / "components").is_dir()
+    assert (tmp_path / "static").is_dir()
+
+
+def test_init_scaffolds_a_page_that_builds_successfully(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(tmp_path)
+
+    init()
+    build()
+
+    assert (tmp_path / "build" / "site.js").exists()
+
+
+def test_init_refuses_when_the_directory_is_not_empty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "notes.txt").write_text("unrelated")
+
+    with pytest.raises(SystemExit):
+        init()
+
+    assert "not empty" in capsys.readouterr().err
+    assert not (tmp_path / "pyproject.toml").exists()

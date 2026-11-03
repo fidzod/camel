@@ -10,22 +10,27 @@ from livereload import Server
 from camel.route import PageError, load_pages
 from camel.site import write_site
 
+INIT_APP_PY = """
+from camel import *
+
+page = h1 > "🐪 My Camel Site"
+""".lstrip()
+
+INIT_PYPROJECT_TOML = """
+[project]
+name = "my-camel-site"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["camel"]
+""".lstrip()
+
+INIT_IGNORE = {".DS_Store", ".git"}
+
 
 def _expect_exists(directory: Path, name: Optional[str] = None) -> None:
     if not directory.exists():
         sys.stderr.write(f"Could not find '{name or directory.name}'\n")
         raise SystemExit(1)
-
-
-def watch():
-    build()
-
-    # Existence already confirmed in build
-    src_dir = Path.cwd() / "src"
-
-    server = Server()
-    server.watch(src_dir, build)
-    server.serve(root="build", port=5000)
 
 
 def build():
@@ -58,26 +63,57 @@ def format_():
     subprocess.run(["black", "."], check=True)
 
 
+def init():
+    cwd = Path.cwd()
+
+    if any(p.name not in INIT_IGNORE for p in cwd.iterdir()):
+        sys.stderr.write("Directory is not empty\n")
+        raise SystemExit(1)
+
+    (cwd / "src" / "pages").mkdir(parents=True)
+    (cwd / "src" / "components").mkdir()
+    (cwd / "static").mkdir()
+
+    (cwd / "src" / "pages" / "app.py").write_text(INIT_APP_PY)
+    (cwd / "pyproject.toml").write_text(INIT_PYPROJECT_TOML)
+
+    print("🐪✨ You're all set!")
+    print("Run: cml watch")
+
+
+def watch():
+    build()
+
+    # Existence already confirmed in build
+    src_dir = Path.cwd() / "src"
+
+    server = Server()
+    server.watch(src_dir, build)
+    server.serve(root="build", port=5000)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="cml")
     subparsers = parser.add_subparsers(dest="command")
 
-    build_parser = subparsers.add_parser("build")
-
-    watch_parser = subparsers.add_parser("watch")
-
-    subparsers.add_parser("format")
+    subparsers.add_parser("build")
+    subparsers.add_parser("fmt")
+    subparsers.add_parser("init")
+    subparsers.add_parser("watch")
 
     args = parser.parse_args()
 
-    if args.command == "build":
-        build()
-    elif args.command == "watch":
-        watch()
-    elif args.command == "format":
-        format_()
-    else:
-        parser.print_help()
+    match args.command:
+        case "build":
+            build()
+        case "fmt":
+            format_()
+        case "init":
+            init()
+        case "watch":
+            watch()
+        case _:
+            parser.print_help()
 
 
 if __name__ == "__main__":
