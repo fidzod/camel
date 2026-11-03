@@ -209,11 +209,7 @@ const reRender = (doc) => {
 const mount = () => {
   // Removes trailing backslash if present
   const page = site[window.location.pathname.replace(/\/$/, "") || "/"];
-  if (page === undefined) {
-    // TODO
-    throw new Error("404 - Page not found");
-  }
-  reRender(page);
+  reRender(page ?? site["/404"]);
 }
 
 document.addEventListener("DOMContentLoaded", mount);

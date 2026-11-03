@@ -30,12 +30,18 @@ test("mount renders the page matching the current path", () => {
   assert.strictEqual(doc._root.toString(), "<div>about</div>");
 });
 
-test("mount raises for a path with no matching page", () => {
+test("mount renders the /404 page for a path with no matching page", () => {
   global.document = makeDocument();
+  const doc = global.document;
   global.window = { location: { pathname: "/nope" } };
-  global.site = { "/": { type: "Text", contents: "home" } };
+  global.site = {
+    "/": { type: "Text", contents: "home" },
+    "/404": { type: "Text", contents: "not found" },
+  };
 
-  assert.throws(() => mount(), /404|not found/i);
+  mount();
+
+  assert.strictEqual(doc._root.toString(), "<div>not found</div>");
 });
 
 test("mount strips a trailing slash before looking up the route", () => {

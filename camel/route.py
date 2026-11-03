@@ -4,7 +4,9 @@ import importlib.util
 from pathlib import Path
 import sys
 
-from camel.dsl import Node
+from camel.dsl import Elem, Node
+
+DEFAULT_404 = Elem("h1") > "404 - Page not found"
 
 
 class PageError(Exception):
@@ -51,5 +53,7 @@ def load_pages(root: Path) -> dict[str, Node]:
 
     if errors:
         raise ExceptionGroup("failed to load pages", errors)
+
+    pages.setdefault("/404", DEFAULT_404)
 
     return pages

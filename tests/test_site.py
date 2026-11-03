@@ -102,3 +102,8 @@ def test_write_site_writes_only_one_copy_of_the_shared_assets(tmp_path: Path):
     assert not (tmp_path / "about" / "site.js").exists()
     assert not (tmp_path / "about" / "runtime.js").exists()
     assert not (tmp_path / "about" / "style.css").exists()
+
+
+def test_write_site_writes_a_404_shell_identical_to_the_others(tmp_path: Path):
+    write_site({"/": Elem("p"), "/404": Elem("h1")}, tmp_path)
+    assert (tmp_path / "404.html").read_text() == (tmp_path / "index.html").read_text()

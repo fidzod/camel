@@ -26,3 +26,5 @@ def write_site(routes: dict[str, Node], out: Path) -> None:
         shell = out / route.removeprefix("/")
         shell.mkdir(parents=True, exist_ok=True)
         shutil.copy(_STATIC / "index.html", shell / "index.html")
+
+    shutil.copy(_STATIC / "index.html", out / "404.html")
