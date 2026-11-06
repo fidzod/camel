@@ -2,11 +2,14 @@ __all__ = ["load_pages", "PageError"]
 
 import importlib.util
 from pathlib import Path
+import re
 import sys
 
 from camel.dsl import Elem, Node
 
 DEFAULT_404 = Elem("h1") > "404 - Page not found"
+
+_BRACKET = re.compile(r"^\[(\w+)\]$")
 
 
 class PageError(Exception):
@@ -17,13 +20,15 @@ class PageError(Exception):
         self.path = path
 
 
-def _route_for(root: Path, path: Path) -> str:
-    rel = path.parent.relative_to(root)
-    return "/" + "/".join(rel.parts)
+def _resolve(template: str, value: str) -> str:
+    parts = template.split("/")
+    parts = [value if _BRACKET.match(p) else p for p in parts]
+    return "/".join(parts)
 
 
-def _load_page(root: Path, path: Path) -> Node:
+def _load_page(root: Path, path: Path) -> dict[str, Node]:
     rel = path.parent.relative_to(root)
+    is_dynamic = bool(rel.parts) and _BRACKET.match(rel.parts[-1])
 
     name = "page_" + "_".join(rel.parts or ("index",))
     spec = importlib.util.spec_from_file_location(name, path)
@@ -35,10 +40,24 @@ def _load_page(root: Path, path: Path) -> Node:
     sys.modules[name] = module
     spec.loader.exec_module(module)
 
-    if (page := getattr(module, "page", None)) is None:
-        raise ValueError("Missing page export")
+    has_paths = hasattr(module, "paths")
 
-    return page
+    if is_dynamic and not has_paths:
+        raise ValueError(f"'{rel.parts[-1]}' must export paths()")
+    if has_paths and not is_dynamic:
+        raise ValueError("paths() expor from static route")
+
+    if is_dynamic:
+        if not callable(page := getattr(module, "page", None)):
+            raise ValueError("Expected callable page export")
+        template = "/" + "/".join(rel.parts)
+        return {
+            _resolve(template, value): module.page(value) for value in module.paths()
+        }
+    else:
+        if (page := getattr(module, "page", None)) is None:
+            raise ValueError("Missing page export")
+        return {"/" + "/".join(rel.parts): module.page}
 
 
 def load_pages(root: Path) -> dict[str, Node]:
@@ -47,7 +66,7 @@ def load_pages(root: Path) -> dict[str, Node]:
 
     for path in sorted(root.rglob("app.py")):
         try:
-            pages[_route_for(root, path)] = _load_page(root, path)
+            pages.update(_load_page(root, path))
         except Exception as cause:
             errors.append(PageError(path, cause))
 

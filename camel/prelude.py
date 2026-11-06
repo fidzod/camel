@@ -20,9 +20,21 @@ __all__ = [
     "let",
     "state",
     "if_",
+    "many",
 ]
 
-from camel.dsl import Condition, Elem, Let, PartialIf, StateRefProxy
+from collections.abc import Iterable
+
+from camel.dsl import (
+    Child,
+    Condition,
+    Elem,
+    Fragment,
+    Let,
+    PartialIf,
+    StateRefProxy,
+    fragment,
+)
 
 # HTML Tags
 h1 = Elem("h1")
@@ -68,3 +80,8 @@ state = StateRefProxy()
 # Conditionals
 def if_(cond: Condition) -> PartialIf:
     return PartialIf(cond)
+
+
+# Composition
+def many(children: Iterable[Child]) -> Fragment:
+    return fragment(*children)

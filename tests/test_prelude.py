@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from camel.dsl import Elem
-from camel.prelude import let
+from camel.dsl import Elem, Fragment
+from camel.prelude import let, many
 
 
 def test_let_converts_list_bindings_to_tuples():
@@ -40,3 +40,18 @@ def test_let_rejects_an_invalid_scalar():
 def test_let_leaves_scalar_bindings_untouched():
     built = let(clicks=0, label="x").in_(Elem("h1"))
     assert dict(built.initial) == {"clicks": 0, "label": "x"}
+
+
+def test_many_builds_a_fragment_from_an_iterable():
+    built = many(Elem("li") > title for title in ["a", "b"])
+    assert built == Fragment((Elem("li") > "a", Elem("li") > "b"))
+
+
+def test_many_accepts_an_empty_iterable():
+    assert many([]) == Fragment(())
+
+
+def test_many_flattens_nested_fragments():
+    nested = (Elem("li") > "b") + (Elem("li") > "c")
+    built = many([Elem("li") > "a", nested])
+    assert built == Fragment((Elem("li") > "a", Elem("li") > "b", Elem("li") > "c"))

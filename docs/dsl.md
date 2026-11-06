@@ -28,6 +28,14 @@ class per attribute, in the order accessed. Calling a tag (`a(href="...")`) sets
 HTML attributes, and accumulates across repeated calls the same way class access
 does. A plain `str` is a valid child anywhere - it compiles to `Text`.
 
+`many(children)` builds one node out of an arbitrary number of children
+drawn from an iterable - a list, a generator, a comprehension - flattening
+nested groups the same way `+` does. An empty iterable is valid and builds
+a node with no children. It's the static counterpart to
+`state.<name>.each(...)`: reach for `many` when the children are already
+known in Python; reach for `.each(...)` when the runtime needs to react to
+a named list changing.
+
 ## Vocabulary
 
 `camel.prelude` exports a bare `Elem` per HTML tag: `h1`-`h6`, `p`, `b`, `a`,

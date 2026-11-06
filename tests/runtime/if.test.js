@@ -105,6 +105,14 @@ test("swaps correctly when a branch renders to a Fragment, not a single node", (
   assert.strictEqual(doc._root.toString(), "<div><!--if-->AB<!--/if--></div>");
 });
 
+test("renders the default otherwise (Empty) as nothing when the condition doesn't hold", () => {
+  global.document = makeDocument();
+  const doc = global.document;
+  const clicks = signal(2);
+  doc._root.append(render(ifNode({ type: "Text", contents: "click" }, { type: "Empty" }), { clicks }));
+  assert.strictEqual(doc._root.toString(), "<div><!--if--><!--/if--></div>");
+});
+
 test("a condition over an undeclared state ref raises", () => {
   global.document = makeDocument();
   assert.throws(

@@ -39,10 +39,10 @@ def _flatten(items: Iterable[Child]) -> Iterator[Child]:
 
 class Node:
     def __add__(self, sibling: Child):
-        return _fragment(self, sibling)
+        return fragment(self, sibling)
 
     def __radd__(self, sibling: Child):
-        return _fragment(sibling, self)
+        return fragment(sibling, self)
 
     def __bool__(self):
         raise TypeError("Nodes have no truth value; parenthesise `>` chains")
@@ -111,7 +111,7 @@ class Fragment(Node):
     children: tuple[Child, ...]
 
 
-def _fragment(*items) -> Fragment:
+def fragment(*items) -> Fragment:
     return Fragment(tuple(_flatten(items)))
 
 

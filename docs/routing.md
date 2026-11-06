@@ -22,6 +22,27 @@ doesn't abort discovery at the first one found - every broken page is
 collected and raised together, as one `ExceptionGroup`, and nothing
 compiles if any page failed.
 
+## Dynamic Segments
+
+A directory named `[name]` (brackets included) stands for a single route
+segment resolved at build time, not a literal path. In place of a static
+`page: Node`, it exports:
+
+- `paths() -> Iterable[str]`, the concrete values to build for that
+  segment.
+- `page(value: str) -> Node`, called once per value from `paths()`.
+
+Each value substitutes into the bracketed segment of the route -
+`pages/docs/[slug]/app.py` with `paths()` returning `["routing",
+"examples"]` compiles to `/docs/routing` and `/docs/examples`, two
+ordinary entries in the routed site, indistinguishable from any other
+page past this point. A `paths()` that returns nothing contributes no
+routes under that prefix.
+
+A `[name]` directory that doesn't export `paths`, or a plain directory
+that does, is a routing error - both are caught at discovery the same
+way a missing `page` is.
+
 ## Compiling
 
 Every discovered page compiles into one `site.js`, keyed by route path, so a

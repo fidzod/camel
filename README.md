@@ -132,7 +132,6 @@ More - lists, input binding, scoped styles, composition - in
   fallback) - dropping `build/` on an unconfigured static host no longer
   works out of the box the way a per-route build would (though
   `build/404.html` gives GitHub-Pages-style hosts a fallback - see above).
-- No dynamic route segments yet (eg. `pages/blog/[slug]/app.py`)
 - No content pre-rendering or hydration - every route's shell is empty
   until JS loads, which isn't ideal for SEO or no-JS clients.
 - Navigating between routes is always a full page load - there's no
@@ -144,10 +143,13 @@ More - lists, input binding, scoped styles, composition - in
 - Deploying under a subpath (e.g. a GitHub Pages *project* site served
   from `/reponame/` rather than the domain root) isn't supported - asset
   references are root-absolute, assuming the site is served from `/`.
+- Only one dynamic route segment (`[slug]`) per path is supported - a
+  second bracketed segment at a different depth (`[category]/[slug]`)
+  is silently wrong, not rejected: every bracketed segment resolves to
+  the same value instead of its own.
 
 ## Next Steps
 
-- Dynamic route segments (`[slug]`).
 - Publish to PyPI.
 - Possibly content pre-rendering/hydration.
 

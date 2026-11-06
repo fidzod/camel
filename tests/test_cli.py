@@ -80,7 +80,9 @@ def test_build_404_mirrors_index_by_default(
     build()
 
     build_dir = tmp_path / "build"
-    assert (build_dir / "404.html").read_text() == (build_dir / "index.html").read_text()
+    assert (build_dir / "404.html").read_text() == (
+        build_dir / "index.html"
+    ).read_text()
 
 
 def test_build_static_index_html_overrides_the_generated_shell(
@@ -94,7 +96,9 @@ def test_build_static_index_html_overrides_the_generated_shell(
 
     build()
 
-    assert (tmp_path / "build" / "index.html").read_text() == "<html>custom shell</html>"
+    assert (
+        tmp_path / "build" / "index.html"
+    ).read_text() == "<html>custom shell</html>"
 
 
 def test_build_404_mirrors_a_static_index_html_override(
@@ -226,7 +230,13 @@ class TestSpaFileHandler(AsyncHTTPTestCase):
 
     def get_app(self):
         return Application(
-            [(r"/(.*)", SpaFileHandler, {"path": "build", "default_filename": "index.html"})]
+            [
+                (
+                    r"/(.*)",
+                    SpaFileHandler,
+                    {"path": "build", "default_filename": "index.html"},
+                )
+            ]
         )
 
     def test_serves_a_real_file_normally(self):

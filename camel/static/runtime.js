@@ -184,6 +184,8 @@ const render = (node, env, vars, scopes = []) => {
       return renderText(node, env, vars);
     case "Fragment":
       return renderFragment(node, env, vars, scopes);
+    case "Empty":
+      return document.createDocumentFragment();
     case "State":
       return renderState(node, env, vars, scopes);
     case "StateRef":
