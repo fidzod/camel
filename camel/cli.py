@@ -6,6 +6,8 @@ import sys
 from typing import Optional
 
 from livereload import Server
+from livereload.handlers import StaticFileHandler
+from tornado.web import HTTPError
 
 from camel.route import PageError, load_pages
 from camel.site import write_site
@@ -25,6 +27,26 @@ dependencies = ["camel"]
 """.lstrip()
 
 INIT_IGNORE = {".DS_Store", ".git"}
+
+
+class SpaFileHandler(StaticFileHandler):
+    """Serves build/ like a host configured for SPA fallback: any path
+    that isn't a real file resolves to the shell, not a 404."""
+
+    def validate_absolute_path(self, root, absolute_path):
+        try:
+            return super().validate_absolute_path(root, absolute_path)
+        except HTTPError as e:
+            if e.status_code == 404:
+                return super().validate_absolute_path(
+                    root,
+                    str(
+                        (
+                            Path(root) / (self.default_filename or "index.html")
+                        ).absolute()
+                    ),
+                )
+            raise
 
 
 def _expect_exists(directory: Path, name: Optional[str] = None) -> None:
@@ -55,6 +77,8 @@ def build():
     static = Path.cwd() / "static"
     if static.exists():
         shutil.copytree(static, build_dir, dirs_exist_ok=True)
+
+    shutil.copy(build_dir / "index.html", build_dir / "404.html")
 
     print("🐪✨ Build successful!")
 
@@ -88,6 +112,7 @@ def watch():
     src_dir = Path.cwd() / "src"
 
     server = Server()
+    server.SFH = SpaFileHandler
     server.watch(src_dir, build)
     server.serve(root="build", port=5000)
 

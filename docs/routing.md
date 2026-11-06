@@ -27,19 +27,29 @@ compiles if any page failed.
 Every discovered page compiles into one `site.js`, keyed by route path, so a
 visitor's first page load already has every route's `Node` tree on hand; moving
 between routes never needs a second fetch mid-navigation. `style.css` is
-likewise one file, combining every page's `StyleScope` rules.
+likewise one file, combining every page's `StyleScope` rules. Both live under
+a reserved `_camel/` directory in the build output, alongside the runtime -
+`_camel/site.js`, `_camel/style.css`, `_camel/runtime.js` - so nothing Camel
+generates can collide with a file you put in `static/`.
 
 ## Output
 
-A client-rendered site only works on a plain static host (GitHub Pages
-and similar) if there's a real file sitting at every path a browser
-might request directly, otherwise a hard refresh or a shared link
-404s before any JS gets a chance to run. So `write_site` writes one
-`index.html` shell per route (`build/about/index.html` for `/about`),
-not just one at the root. Every shell is identical, referencing the one
-shared `site.js`/`runtime.js`/`style.css` by root-absolute path
-(`/site.js`, not `site.js`), so it doesn't matter which depth a given
-shell is served from.
+Camel builds a single-page app: `write_site` writes exactly one `index.html`
+shell at the build root, referencing `_camel/site.js`/`style.css`/`runtime.js`
+by root-absolute path.
+
+Because it's a single file, the host serving `build/` has to be configured to
+return that same shell for any path a browser requests directly (a deep link,
+a shared URL, a hard refresh) rather than 404ing - a rewrite rule on
+Netlify/Vercel/Cloudflare Pages, `try_files` on nginx, and similar. Dropping
+`build/` on a plain static host with no such rule no longer works out of the
+box the way a per-route build did.
+
+Anything in `static/` copies into `build/` as-is, at the same path - so
+`static/favicon.ico` becomes `build/favicon.ico`, `static/robots.txt` becomes
+`build/robots.txt`, and so on. A file named `index.html` in `static/` is no
+exception: it overrides the generated shell at `build/index.html`, same as
+any other static file landing where its name says.
 
 ## Navigation
 
@@ -53,8 +63,10 @@ client-side routing layer sitting in front of native navigation.
 
 `pages/404/app.py` is a route like any other which compiles to `/404` through
 the same mechanism as any other page. If there is no 404 route provided then a
-default will be built in its place. `write_site` writes `build/404.html`,
-identical to every other shell, because that's the filename static hosts look
-for when nothing else matches a request. The runtime's fallback is the same
-mechanism as an ordinary route miss: whatever `location.pathname` doesn't
-match in `site` renders `site["/404"]` instead.
+default will be built in its place. Alongside the single shell, the build also
+writes `build/404.html`, identical to `build/index.html` (including a
+`static/index.html` override) - some static hosts, GitHub Pages included,
+only know how to fall back to a file specifically named `404.html`, so it's
+kept as a second entry point to the same shell for hosts that need it. The
+runtime's fallback is the same mechanism as an ordinary route miss: whatever
+`location.pathname` doesn't match in `site` renders `site["/404"]` instead.

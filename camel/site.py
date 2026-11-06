@@ -12,19 +12,15 @@ _STATIC = Path(__file__).parent / "static"
 
 
 def write_site(routes: dict[str, Node], out: Path) -> None:
-    out.mkdir(parents=True, exist_ok=True)
+    generated_files = out / "_camel"
+    generated_files.mkdir(parents=True, exist_ok=True)
 
     site_ir = {route: to_ir(page) for route, page in routes.items()}
-    (out / "site.js").write_text(f"const site = {json.dumps(site_ir)};")
+    (generated_files / "site.js").write_text(f"const site = {json.dumps(site_ir)};")
 
     css = "\n".join(filter(None, (to_css(page) for page in routes.values())))
-    (out / "style.css").write_text(css)
+    (generated_files / "style.css").write_text(css)
 
-    shutil.copy(_STATIC / "runtime.js", out / "runtime.js")
+    shutil.copy(_STATIC / "runtime.js", generated_files / "runtime.js")
 
-    for route in routes:
-        shell = out / route.removeprefix("/")
-        shell.mkdir(parents=True, exist_ok=True)
-        shutil.copy(_STATIC / "index.html", shell / "index.html")
-
-    shutil.copy(_STATIC / "index.html", out / "404.html")
+    shutil.copy(_STATIC / "index.html", out / "index.html")

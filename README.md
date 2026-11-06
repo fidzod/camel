@@ -38,14 +38,16 @@ v6 is a ground-up rewrite of v5. The headline changes:
   a flex/grid layout depending on sibling position. In v6, a reactive
   value is a real text node, and `If`/`ForEach` use HTML comment markers
   as their boundaries instead of a wrapper element.
-- **Routing, not hash routing.** Hash routing has been replaced.
-  Pages live under `src/pages/` (one directory per route, see
-  `docs/routing.md`), and routes use clean URLs via the History API.
-  `cml build` writes a real file at every route's path, so a static host -
-  GitHub Pages or similar - serves deep links and hard refreshes
-  correctly with zero server configuration. The trade-off: navigating
-  between pages is a real page load, not an instant client-side swap -
-  nothing intercepts link clicks.
+- **Routing, not hash routing.** Hash routing has been replaced. Pages live
+  under `src/pages/` (one directory per route, see `docs/routing.md`), and
+  routes use clean URLs via the History API. `cml build` produces a single-page
+  app - one `index.html` shell for the whole site - so your host needs to be
+  configured to serve that shell for any path (a rewrite rule on
+  Netlify/Vercel/Cloudflare Pages, `try_files` on nginx, and similar). An
+  identical `build/404.html` is also written for hosts (GitHub Pages included)
+  that only know that filename-based fallback, not a rewrite rule.
+  Trade-off: navigating between pages is a real page load, not an instant
+  client-side swap - nothing currently intercepts link clicks.
 - **A cleaner, documented IR.** v6's IR follows explicit rules
   about shape, discriminated variants, and how absence is represented,
   documented in full in `docs/ir.md`.
@@ -126,6 +128,10 @@ More - lists, input binding, scoped styles, composition - in
 ## Known Limitations and Issues
 
 - Not published to PyPI - installing means cloning this repo.
+- Needs a host configured to serve `index.html` for every path (SPA
+  fallback) - dropping `build/` on an unconfigured static host no longer
+  works out of the box the way a per-route build would (though
+  `build/404.html` gives GitHub-Pages-style hosts a fallback - see above).
 - No dynamic route segments yet (eg. `pages/blog/[slug]/app.py`)
 - No content pre-rendering or hydration - every route's shell is empty
   until JS loads, which isn't ideal for SEO or no-JS clients.
