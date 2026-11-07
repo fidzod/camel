@@ -84,8 +84,14 @@ const renderFragment = (node, env, vars, scopes) => {
   return fragment;
 }
 
-const renderText = (node, _env) => {
+const renderText = (node) => {
   return document.createTextNode(node.contents);
+}
+
+const renderRawHtml = (node) => {
+  const tmpl = document.createElement("template");
+  tmpl.innerHTML = node.contents;
+  return tmpl.content;
 }
 
 const renderState = (node, env, vars, scopes) => {
@@ -181,7 +187,9 @@ const render = (node, env, vars, scopes = []) => {
     case "Elem":
       return renderElement(node, env, vars, scopes);
     case "Text":
-      return renderText(node, env, vars);
+      return renderText(node);
+    case "RawHtml":
+      return renderRawHtml(node);
     case "Fragment":
       return renderFragment(node, env, vars, scopes);
     case "Empty":

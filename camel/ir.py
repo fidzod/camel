@@ -16,6 +16,7 @@ from camel.dsl import (
     ForEach,
     Fragment,
     If,
+    RawHtml,
     RestoreAction,
     State,
     StateRef,
@@ -29,6 +30,7 @@ type IRNode = (
     ElemIR
     | FragmentIR
     | TextIR
+    | RawHtmlIR
     | StateIR
     | StateRefIR
     | EmptyIR
@@ -62,6 +64,11 @@ class EmptyIR(TypedDict):
 
 class TextIR(TypedDict):
     type: Literal["Text"]
+    contents: str
+
+
+class RawHtmlIR(TypedDict):
+    type: Literal["RawHtml"]
     contents: str
 
 
@@ -175,6 +182,11 @@ def _(empty: Empty) -> EmptyIR:
 @to_ir.register
 def _(node: str) -> TextIR:
     return {"type": "Text", "contents": node}
+
+
+@to_ir.register
+def _(raw: RawHtml) -> RawHtmlIR:
+    return {"type": "RawHtml", "contents": raw.contents}
 
 
 @to_ir.register

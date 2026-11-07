@@ -17,10 +17,13 @@ __all__ = [
     "input_",
     "pre",
     "code",
+    "main",
+    "nav",
     "let",
     "state",
     "if_",
     "many",
+    "raw_html"
 ]
 
 from collections.abc import Iterable
@@ -32,6 +35,7 @@ from camel.dsl import (
     Fragment,
     Let,
     PartialIf,
+    RawHtml,
     StateRefProxy,
     fragment,
 )
@@ -55,6 +59,8 @@ button = Elem("button")
 input_ = Elem("input")
 pre = Elem("pre")
 code = Elem("code")
+main = Elem("main")
+nav = Elem("nav")
 
 
 # State
@@ -85,3 +91,8 @@ def if_(cond: Condition) -> PartialIf:
 # Composition
 def many(children: Iterable[Child]) -> Fragment:
     return fragment(*children)
+
+
+# Raw Html
+def raw_html(markup: str) -> RawHtml:
+    return RawHtml(markup)

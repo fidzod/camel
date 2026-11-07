@@ -2,8 +2,8 @@
 
 Reference for the JSON intermediate representation Camel compiles the DSL to.
 This doc just covers what's implemented so far (`Elem`, `Fragment`, `Empty`,
-`Text`, `State`, `StateRef`, `If`, `Condition`, `Literal`, `Event`, `Action`,
-`ForEach`, `VarRef`, `StyleScope`).
+`Text`, `RawHtml`, `State`, `StateRef`, `If`, `Condition`, `Literal`, `Event`,
+`Action`, `ForEach`, `VarRef`, `StyleScope`).
 
 ## Shape
 
@@ -98,6 +98,20 @@ No fields. Represents the absence of a node.
 | field    | type   |
 |----------|--------|
 | contents | string |
+
+### RawHtml
+
+```json
+{"type": "RawHtml", "contents": "<p>Hello <b>world</b></p>"}
+```
+
+| field    | type   |
+|----------|--------|
+| contents | string |
+
+Sibling to `Text`: both are leaf nodes holding a plain string, fixed at compile
+time. `RawHtml.contents` is parsed as markup and inserted as DOM structure,
+unescaped.
 
 ### State
 

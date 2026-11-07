@@ -121,6 +121,11 @@ class Empty(Node):
 
 
 @dataclass(frozen=True)
+class RawHtml(Node):
+    contents: str
+
+
+@dataclass(frozen=True)
 class Elem(Node):
     tag: str
     children: tuple[Child, ...] = ()

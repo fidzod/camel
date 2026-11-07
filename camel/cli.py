@@ -62,6 +62,9 @@ def build():
     src_dir = Path.cwd() / "src"
     _expect_exists(src_dir)
 
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+
     pages_dir = src_dir / "pages"
     _expect_exists(pages_dir, "src/pages")
 
