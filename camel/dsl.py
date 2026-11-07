@@ -149,6 +149,26 @@ class Elem(Node):
             self, attributes=self.attributes + tuple(attrs.items())
         )
 
+    def __getitem__(self, selectors: str | tuple[str, ...]) -> Elem:
+        if isinstance(selectors, str):
+            selectors = (selectors,)
+
+        ids = tuple(sel[1:] for sel in selectors if sel.startswith("#"))
+
+        if len(ids) > 1:
+            raise TypeError(f"Elem can only have one id, got {ids!r}")
+
+        if len(ids) and "id" in dict(self.attributes).keys():
+            raise TypeError(f"Elem can only have one id")
+
+        classes = tuple(sel for sel in selectors if not sel.startswith("#"))
+
+        return dataclasses.replace(
+            self,
+            classes=self.classes + classes,
+            attributes=self.attributes + tuple(("id", id_) for id_ in ids),
+        )
+
     def bind(self, state: StateRef):
         if self.tag != "input":
             raise TypeError(f'Cannot bind to "{self.tag}" element: expected "input"')

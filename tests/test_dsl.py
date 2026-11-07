@@ -75,6 +75,60 @@ def test_getattr_rejects_underscore_names():
         Elem("div")._private
 
 
+def test_getitem_sets_a_class_from_a_bare_string():
+    styled = Elem("div")["card"]
+    assert styled.classes == ("card",)
+    assert styled.attributes == ()
+
+
+def test_getitem_accepts_multiple_classes():
+    styled = Elem("div")["card", "featured"]
+    assert styled.classes == ("card", "featured")
+
+
+def test_getitem_accumulates_with_existing_classes():
+    styled = Elem("div").card["featured"]
+    assert styled.classes == ("card", "featured")
+
+
+def test_getitem_sets_an_id_from_a_hash_prefix():
+    styled = Elem("div")["#hero"]
+    assert styled.classes == ()
+    assert styled.attributes == (("id", "hero"),)
+
+
+def test_getitem_mixes_classes_and_an_id():
+    styled = Elem("div")["card", "#hero", "featured"]
+    assert styled.classes == ("card", "featured")
+    assert styled.attributes == (("id", "hero"),)
+
+
+def test_getitem_accumulates_with_existing_attributes():
+    styled = Elem("a")(href="/x")["#hero"]
+    assert styled.attributes == (("href", "/x"), ("id", "hero"))
+
+
+def test_getitem_rejects_more_than_one_id():
+    with pytest.raises(TypeError):
+        Elem("div")["#a", "#b"]
+
+
+def test_getitem_rejects_an_id_when_one_is_already_set_via_call():
+    with pytest.raises(TypeError):
+        Elem("div")(id="a")["#b"]
+
+
+def test_getitem_rejects_an_id_when_one_is_already_set_via_a_prior_getitem():
+    with pytest.raises(TypeError):
+        Elem("div")["#a"]["#b"]
+
+
+def test_getitem_does_not_mutate_the_original():
+    original = Elem("div")
+    original["card"]
+    assert original.classes == ()
+
+
 def test_radd_wraps_leading_string():
     assert ("prefix" + Elem("p")) == Fragment(("prefix", Elem("p")))
 

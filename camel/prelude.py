@@ -23,7 +23,7 @@ __all__ = [
     "state",
     "if_",
     "many",
-    "raw_html"
+    "raw_html",
 ]
 
 from collections.abc import Iterable

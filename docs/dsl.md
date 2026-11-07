@@ -28,6 +28,13 @@ class per attribute, in the order accessed. Calling a tag (`a(href="...")`) sets
 HTML attributes, and accumulates across repeated calls the same way class access
 does. A plain `str` is a valid child anywhere - it compiles to `Text`.
 
+Subscripting a tag (`div["card", "#hero"]`) is an alternative to attribute
+access for classes that aren't valid Python identifiers, e.g. `card-featured`.
+A bare string sets a class; a `#`-prefixed string sets the `id` attribute
+instead. A single string or any number of comma-separated strings are both
+accepted. At most one `#`-prefixed string is allowed per subscript - an
+element can only have one id, so a second raises `TypeError`.
+
 `many(children)` builds one node out of an arbitrary number of children
 drawn from an iterable - a list, a generator, a comprehension - flattening
 nested groups the same way `+` does. An empty iterable is valid and builds
